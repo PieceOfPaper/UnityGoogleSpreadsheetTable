@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
@@ -13,17 +14,25 @@ namespace GoogleSheetsTable
         public Table[] tableSettings;
 
         [System.Serializable]
-        public struct Table
+        public struct Table : IEquatable<Table>
         {
             public string spreadsheetId;
             public string sheetName;
             public string dataRange;
+            
+            public bool Equals(Table o)
+            {
+                if (this.spreadsheetId != o.spreadsheetId) return false;
+                if (this.sheetName != o.sheetName) return false;
+                if (this.dataRange != o.dataRange) return false;
+                return true;
+            }
         }
 
 #if UNITY_EDITOR
 
         [UnityEditor.MenuItem("Tools/Google Sheets Table/Create Setting")]
-        private static void CreateSetting()
+        public static void CreateSetting()
         {
             AssetDatabase.CreateAsset(ScriptableObject.CreateInstance(typeof(GoogleSheetsSetting)), PATH);
         }
