@@ -3,9 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEditor;
-using UnityEditor.PackageManager.UI;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 namespace GoogleSheetsTable
 {
@@ -17,13 +15,28 @@ namespace GoogleSheetsTable
             var window = EditorWindow.GetWindow<GoogleSheetsTableBuilder>();
         }
 
+        public const string GENERATE_CODE_PATH = "Assets/GoogleSheetsTable/Scripts/Generated";
+        public const string GENERATE_CODE_TEMP_PATH = "Temp/GoogleSheetsTable/Scripts/Generated";
+
         
         private bool m_IsEnableGoogleSheetAPI;
 
         private GoogleSheetsSetting m_Setting;
         private bool m_IsSettingModified;
 
+        private List<GoogleSheetsSetting.Table> m_RequestGenerateTableList = new List<GoogleSheetsSetting.Table>();
+        private List<GoogleSheetsSetting.Table> m_GeneratedTableList = new List<GoogleSheetsSetting.Table>();
+
+        private string m_GenerateCodePath;
+        private string m_GenerateCodeTempPath;
+
         public Vector2 m_TablesScroll;
+
+        private void OnEnable()
+        {
+            m_GenerateCodePath = System.IO.Path.Combine(Application.dataPath.Replace("/Assets", ""), GENERATE_CODE_PATH);
+            m_GenerateCodeTempPath = System.IO.Path.Combine(Application.dataPath.Replace("/Assets", ""), GENERATE_CODE_TEMP_PATH);
+        }
 
         private void OnGUI()
         {
@@ -51,6 +64,31 @@ namespace GoogleSheetsTable
                 AssetDatabase.SaveAssets();
                 AssetDatabase.Refresh();
             }
+
+            if (m_RequestGenerateTableList.Count > 0)
+            {
+                if (m_RequestGenerateTableList.Count <= m_GeneratedTableList.Count)
+                {
+                    EditorUtility.ClearProgressBar();
+                    m_RequestGenerateTableList.Clear();
+                    m_GeneratedTableList.Clear();
+                    
+                    System.IO.Directory.CreateDirectory(System.IO.Path.Combine(m_GenerateCodePath, "Struct"));
+                    var tempDirectoryInfo = new System.IO.DirectoryInfo(System.IO.Path.Combine(m_GenerateCodeTempPath, "Struct"));
+                    var fileInfos = tempDirectoryInfo.GetFiles();
+                    foreach (var fileInfo in fileInfos)
+                    {
+                        System.IO.File.Copy(fileInfo.FullName, System.IO.Path.Combine(m_GenerateCodePath, $"Struct/{fileInfo.Name}"));
+                    }
+                    AssetDatabase.Refresh();
+                }
+                else
+                {
+                    EditorUtility.DisplayProgressBar("Google Sheets Table Builder", $"Generating Table ...", (float)m_GeneratedTableList.Count / m_RequestGenerateTableList.Count);
+                }
+            }
+            
+            Repaint();
         }
 
         private void OnGUI_Certificate()
@@ -113,9 +151,12 @@ namespace GoogleSheetsTable
                 {
                     removeIndex = i;
                 }
-                if (GUILayout.Button("Gen", GUILayout.ExpandWidth(false)))
+                using (new EditorGUI.DisabledScope(m_IsEnableGoogleSheetAPI == false || m_RequestGenerateTableList.Count > 0))
                 {
-                    //TODO
+                    if (GUILayout.Button("Generate", GUILayout.ExpandWidth(false)))
+                    {
+                        GenerateTable(data);
+                    }
                 }
                 EditorGUILayout.EndVertical();
                 EditorGUILayout.EndHorizontal();
@@ -139,7 +180,15 @@ namespace GoogleSheetsTable
             }
             EditorGUILayout.Space();
             EditorGUILayout.EndHorizontal();
-            
+
+            using (new EditorGUI.DisabledScope(m_IsEnableGoogleSheetAPI == false || m_RequestGenerateTableList.Count > 0))
+            {
+                if (GUILayout.Button("Generate All"))
+                {
+                    GenerateTables(tableList);
+                }
+            }
+
             EditorGUILayout.EndScrollView();
 
             if (removeIndex >= 0)
@@ -150,5 +199,134 @@ namespace GoogleSheetsTable
 
             m_Setting.tableSettings = tableList.ToArray();
         }
+
+
+        private void GenerateTable(GoogleSheetsSetting.Table table)
+        {
+            m_RequestGenerateTableList.Clear();
+            m_GeneratedTableList.Clear();
+
+            var tempPath = System.IO.Path.Combine(m_GenerateCodeTempPath, "Struct");
+            System.IO.Directory.CreateDirectory(tempPath);
+            var tempDirectoryInfo = new System.IO.DirectoryInfo(tempPath);
+            var fileInfos = tempDirectoryInfo.GetFiles();
+            foreach (var fileInfo in fileInfos)
+                System.IO.File.Delete(fileInfo.FullName);
+            
+            m_RequestGenerateTableList.Add(table);
+            _GenerateTable(table);
+        }
+        
+        private void GenerateTables(IEnumerable<GoogleSheetsSetting.Table> tables)
+        {
+            m_RequestGenerateTableList.Clear();
+            m_GeneratedTableList.Clear();
+
+            var tempPath = System.IO.Path.Combine(m_GenerateCodeTempPath, "Struct");
+            System.IO.Directory.CreateDirectory(tempPath);
+            var tempDirectoryInfo = new System.IO.DirectoryInfo(tempPath);
+            var fileInfos = tempDirectoryInfo.GetFiles();
+            foreach (var fileInfo in fileInfos)
+                System.IO.File.Delete(fileInfo.FullName);
+
+            if (tables != null)
+            {
+                m_RequestGenerateTableList.AddRange(tables);
+                foreach (var table in tables)
+                    _GenerateTable(table);
+            }
+        }
+        
+        private void _GenerateTable(GoogleSheetsSetting.Table table)
+        {
+            GoogleSheetsAPI.Instance.RequestTable(table.spreadsheetId, $"{table.sheetName}!{table.dataRange}", values =>
+            {
+                var strBuilder = new System.Text.StringBuilder();
+                strBuilder.AppendLine("namespace GoogleSheetsTable");
+                strBuilder.AppendLine("{");
+                strBuilder.AppendLineFormat("\tpublic partial struct {0}", table.sheetName);
+                strBuilder.AppendLine("\t{");
+                
+                var colNames = new List<string>();
+                var colTypes = new List<string>();
+                for (int rowIdx = 0; rowIdx < values.Count; rowIdx ++)
+                {
+                    if (rowIdx >= 2) break;
+                    var row = values[rowIdx];
+                    for (int colIdx = 0; colIdx < row.Count; colIdx ++)
+                    {
+                        var value = row[colIdx];
+                        switch (rowIdx)
+                        {
+                            case 0:
+                                colNames.Add(value.ToString());
+                                break;
+                            case 1:
+                                colTypes.Add(value.ToString());
+                                break;
+                        }
+                    }
+                }
+
+                var colCnt = System.Math.Min(colNames.Count, colTypes.Count);
+                for (int colIdx = 0; colIdx < colCnt; colIdx ++)
+                {
+                    strBuilder.AppendLineFormat("\t\tpublic readonly {0} {1};", colTypes[colIdx], colNames[colIdx]);
+                }
+                strBuilder.AppendLineFormat("\t\tpublic {0}(System.IO.BinaryReader binaryReader)", table.sheetName);
+                strBuilder.AppendLine("\t\t{");
+                for (int colIdx = 0; colIdx < colCnt; colIdx ++)
+                {
+                    strBuilder.AppendFormat("\t\t\t{0} = ", colNames[colIdx]);
+                    switch (colTypes[colIdx])
+                    {
+                        case "string":
+                            strBuilder.Append("binaryReader.ReadString();");
+                            break;
+                        case "short":
+                            strBuilder.Append("binaryReader.ReadInt16();");
+                            break;
+                        case "int":
+                            strBuilder.Append("binaryReader.ReadInt32();");
+                            break;
+                        case "long":
+                            strBuilder.Append("binaryReader.ReadInt64();");
+                            break;
+                        case "float":
+                            strBuilder.Append("binaryReader.ReadSingle();");
+                            break;
+                        case "boolean":
+                            strBuilder.Append("binaryReader.ReadBoolean();");
+                            break;
+                        default:
+                            strBuilder.Append("default;");
+                            break;
+                    }
+                    strBuilder.Append('\n');
+                }
+                strBuilder.AppendLine("\t\t}");
+                strBuilder.AppendLine("\t}");
+                strBuilder.AppendLine("}");
+
+                var generateStruntPath = System.IO.Path.Combine(m_GenerateCodeTempPath, $"Struct/{table.sheetName}.cs");
+                System.IO.File.WriteAllText(generateStruntPath, strBuilder.ToString());
+                
+                
+                for (int rowIdx = 2; rowIdx < values.Count; rowIdx ++)
+                {
+                    var row = values[rowIdx];
+                    for (int colIdx = 0; colIdx < row.Count; colIdx ++)
+                    {
+                        var value = row[colIdx];
+                    }
+                }
+
+                lock (m_GeneratedTableList)
+                {
+                    m_GeneratedTableList.Add(table);
+                }
+            });
+        }
+        
     }
 }

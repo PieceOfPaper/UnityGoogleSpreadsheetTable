@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Threading;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Json;
+using Google.Apis.Services;
 using Google.Apis.Sheets.v4;
 using Google.Apis.Util.Store;
+using UnityEditor.VersionControl;
 using UnityEngine;
 
 public class GoogleSheetsAPI
@@ -84,5 +86,21 @@ public class GoogleSheetsAPI
         
         m_IsCertificating = false;
         m_IsCertificated = true;
+    }
+
+    public void RequestTable(string spreadsheetId, string range, System.Action<IList<IList<object>>> callback)
+    {
+        var task = System.Threading.Tasks.Task.Run(() =>
+        {
+            var service = new SheetsService(new BaseClientService.Initializer()
+            {
+                HttpClientInitializer = m_Credential,
+                ApplicationName = m_ProductName,
+            });
+        
+            var request = service.Spreadsheets.Values.Get(spreadsheetId, range);
+            var response = request.Execute();
+            callback?.Invoke(response.Values);
+        });
     }
 }

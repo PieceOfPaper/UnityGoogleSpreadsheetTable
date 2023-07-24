@@ -15,5 +15,8 @@ MonoBehaviour:
   googleClientSecretsPath: Assets/Sample/client_secret_245832330856-5tvj7prtvunk75srcclhi3sm8lvejiia.apps.googleusercontent.com.json
   tableSettings:
   - spreadsheetId: 18MU0YAvLLH7JLZFV0b-G4K3QuQjTpqO-BUQP8A8cuJg
-    sheetName: "\uC2DC\uD2B81"
-    dataRange: A2:C6
+    sheetName: Sheet1
+    dataRange: A2:C7
+  - spreadsheetId: 18MU0YAvLLH7JLZFV0b-G4K3QuQjTpqO-BUQP8A8cuJg
+    sheetName: CharacterData
+    dataRange: A2:C7
