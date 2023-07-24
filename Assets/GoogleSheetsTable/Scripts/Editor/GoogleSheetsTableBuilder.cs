@@ -74,11 +74,18 @@ namespace GoogleSheetsTable
                     m_GeneratedTableList.Clear();
                     
                     System.IO.Directory.CreateDirectory(System.IO.Path.Combine(m_GenerateCodePath, "Struct"));
-                    var tempDirectoryInfo = new System.IO.DirectoryInfo(System.IO.Path.Combine(m_GenerateCodeTempPath, "Struct"));
-                    var fileInfos = tempDirectoryInfo.GetFiles();
-                    foreach (var fileInfo in fileInfos)
+                    System.IO.Directory.CreateDirectory(System.IO.Path.Combine(m_GenerateCodePath, "TableManager"));
+                    var tempStructDirectoryInfo = new System.IO.DirectoryInfo(System.IO.Path.Combine(m_GenerateCodeTempPath, "Struct"));
+                    var structFileInfos = tempStructDirectoryInfo.GetFiles();
+                    foreach (var fileInfo in structFileInfos)
                     {
-                        System.IO.File.Copy(fileInfo.FullName, System.IO.Path.Combine(m_GenerateCodePath, $"Struct/{fileInfo.Name}"));
+                        System.IO.File.Copy(fileInfo.FullName, System.IO.Path.Combine(m_GenerateCodePath, $"Struct/{fileInfo.Name}"), true);
+                    }
+                    var tempTableManagerDirectoryInfo = new System.IO.DirectoryInfo(System.IO.Path.Combine(m_GenerateCodeTempPath, "TableManager"));
+                    var tableManagerFileInfos = tempTableManagerDirectoryInfo.GetFiles();
+                    foreach (var fileInfo in tableManagerFileInfos)
+                    {
+                        System.IO.File.Copy(fileInfo.FullName, System.IO.Path.Combine(m_GenerateCodePath, $"TableManager/{fileInfo.Name}"), true);
                     }
                     AssetDatabase.Refresh();
                 }
@@ -206,11 +213,17 @@ namespace GoogleSheetsTable
             m_RequestGenerateTableList.Clear();
             m_GeneratedTableList.Clear();
 
-            var tempPath = System.IO.Path.Combine(m_GenerateCodeTempPath, "Struct");
-            System.IO.Directory.CreateDirectory(tempPath);
-            var tempDirectoryInfo = new System.IO.DirectoryInfo(tempPath);
-            var fileInfos = tempDirectoryInfo.GetFiles();
-            foreach (var fileInfo in fileInfos)
+            var tempStructPath = System.IO.Path.Combine(m_GenerateCodeTempPath, "Struct");
+            var tempTableManagerPath = System.IO.Path.Combine(m_GenerateCodeTempPath, "TableManager");
+            System.IO.Directory.CreateDirectory(tempStructPath);
+            System.IO.Directory.CreateDirectory(tempTableManagerPath);
+            var tempStructDirectoryInfo = new System.IO.DirectoryInfo(tempStructPath);
+            var structFileInfos = tempStructDirectoryInfo.GetFiles();
+            foreach (var fileInfo in structFileInfos)
+                System.IO.File.Delete(fileInfo.FullName);
+            var tempTableManagerDirectoryInfo = new System.IO.DirectoryInfo(tempTableManagerPath);
+            var tableManagerFileInfos = tempTableManagerDirectoryInfo.GetFiles();
+            foreach (var fileInfo in tableManagerFileInfos)
                 System.IO.File.Delete(fileInfo.FullName);
             
             m_RequestGenerateTableList.Add(table);
@@ -222,11 +235,17 @@ namespace GoogleSheetsTable
             m_RequestGenerateTableList.Clear();
             m_GeneratedTableList.Clear();
 
-            var tempPath = System.IO.Path.Combine(m_GenerateCodeTempPath, "Struct");
-            System.IO.Directory.CreateDirectory(tempPath);
-            var tempDirectoryInfo = new System.IO.DirectoryInfo(tempPath);
-            var fileInfos = tempDirectoryInfo.GetFiles();
-            foreach (var fileInfo in fileInfos)
+            var tempStructPath = System.IO.Path.Combine(m_GenerateCodeTempPath, "Struct");
+            var tempTableManagerPath = System.IO.Path.Combine(m_GenerateCodeTempPath, "TableManager");
+            System.IO.Directory.CreateDirectory(tempStructPath);
+            System.IO.Directory.CreateDirectory(tempTableManagerPath);
+            var tempStructDirectoryInfo = new System.IO.DirectoryInfo(tempStructPath);
+            var structFileInfos = tempStructDirectoryInfo.GetFiles();
+            foreach (var fileInfo in structFileInfos)
+                System.IO.File.Delete(fileInfo.FullName);
+            var tempTableManagerDirectoryInfo = new System.IO.DirectoryInfo(tempTableManagerPath);
+            var tableManagerFileInfos = tempTableManagerDirectoryInfo.GetFiles();
+            foreach (var fileInfo in tableManagerFileInfos)
                 System.IO.File.Delete(fileInfo.FullName);
 
             if (tables != null)
@@ -241,12 +260,6 @@ namespace GoogleSheetsTable
         {
             GoogleSheetsAPI.Instance.RequestTable(table.spreadsheetId, $"{table.sheetName}!{table.dataRange}", values =>
             {
-                var strBuilder = new System.Text.StringBuilder();
-                strBuilder.AppendLine("namespace GoogleSheetsTable");
-                strBuilder.AppendLine("{");
-                strBuilder.AppendLineFormat("\tpublic partial struct {0}", table.sheetName);
-                strBuilder.AppendLine("\t{");
-                
                 var colNames = new List<string>();
                 var colTypes = new List<string>();
                 for (int rowIdx = 0; rowIdx < values.Count; rowIdx ++)
@@ -267,6 +280,17 @@ namespace GoogleSheetsTable
                         }
                     }
                 }
+
+                if (colNames.Count == 0 || colTypes.Count == 0)
+                {
+                    throw new Exception("Column 부족");
+                }
+                
+                var strBuilder = new System.Text.StringBuilder();
+                strBuilder.AppendLine("namespace GoogleSheetsTable");
+                strBuilder.AppendLine("{");
+                strBuilder.AppendLineFormat("\tpublic partial struct {0}", table.sheetName);
+                strBuilder.AppendLine("\t{");
 
                 var colCnt = System.Math.Min(colNames.Count, colTypes.Count);
                 for (int colIdx = 0; colIdx < colCnt; colIdx ++)
@@ -310,7 +334,31 @@ namespace GoogleSheetsTable
 
                 var generateStruntPath = System.IO.Path.Combine(m_GenerateCodeTempPath, $"Struct/{table.sheetName}.cs");
                 System.IO.File.WriteAllText(generateStruntPath, strBuilder.ToString());
+
+
+                strBuilder.Clear();
+                strBuilder.AppendLine("using System.Collections;");
+                strBuilder.AppendLine("using System.Collections.Generic;");
+                strBuilder.AppendLine("namespace GoogleSheetsTable");
+                strBuilder.AppendLine("{");
+                strBuilder.AppendLine("\tpublic partial class TableManager");
+                strBuilder.AppendLine("\t{");
+                strBuilder.AppendLineFormat("\t\tprivate Dictionary<{1}, {0}> m_Dic{0} = new Dictionary<int, {0}>();", table.sheetName, colTypes[0]);
+                strBuilder.AppendLineFormat("\t\tpublic void LoadTable_{0}(System.IO.BinaryReader binaryReader)", table.sheetName);
+                strBuilder.AppendLine("\t\t{");
+                strBuilder.AppendLineFormat("\t\t\tm_Dic{0}.Clear();", table.sheetName);
+                strBuilder.AppendLine("\t\t\tvar count = binaryReader.ReadInt32();");
+                strBuilder.AppendLine("\t\t\tfor (int i = 0; i < count; i ++)");
+                strBuilder.AppendLine("\t\t\t{");
+                strBuilder.AppendLineFormat("\t\t\t\tvar data = new {0}(binaryReader);", table.sheetName);
+                strBuilder.AppendLineFormat("\t\t\t\tm_Dic{0}.Add(data.{1}, data);", table.sheetName, colNames[0]);
+                strBuilder.AppendLine("\t\t\t}");
+                strBuilder.AppendLine("\t\t}");
+                strBuilder.AppendLine("\t}");
+                strBuilder.AppendLine("}");
                 
+                var generateTableManagerPath = System.IO.Path.Combine(m_GenerateCodeTempPath, $"TableManager/TableManager_{table.sheetName}.cs");
+                System.IO.File.WriteAllText(generateTableManagerPath, strBuilder.ToString());
                 
                 for (int rowIdx = 2; rowIdx < values.Count; rowIdx ++)
                 {
