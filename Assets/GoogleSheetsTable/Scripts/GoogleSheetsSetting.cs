@@ -10,6 +10,7 @@ namespace GoogleSheetsTable
     {
         public const string PATH = "Assets/GoogleSheetsTable/Setting.asset";
         
+        public string exportPath = "Assets/Resources/Data";
         public string googleClientSecretsPath;
         public Table[] tableSettings;
 
