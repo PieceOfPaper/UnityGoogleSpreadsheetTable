@@ -20,10 +20,10 @@ namespace GoogleSheetsTable
         public const string GENERATE_CODE_TEMP_PATH = "Temp/GoogleSheetsTable/Scripts/Generated";
         public const string GENERATE_BINARY_TEMP_PATH = "Temp/GoogleSheetsTable/Binary";
 
+        public GoogleSheetsSetting m_Setting;
+        public Vector2 m_TablesScroll;
         
         private bool m_IsEnableGoogleSheetAPI;
-
-        private GoogleSheetsSetting m_Setting;
         private bool m_IsSettingModified;
 
         private string m_ExportPath;
@@ -36,28 +36,50 @@ namespace GoogleSheetsTable
         private string m_GenerateCodePath;
         private string m_GenerateCodeTempPath;
 
-        public Vector2 m_TablesScroll;
 
         private void OnEnable()
         {
             m_GenerateCodePath = System.IO.Path.Combine(Application.dataPath.Replace("/Assets", ""), GENERATE_CODE_PATH);
             m_GenerateCodeTempPath = System.IO.Path.Combine(Application.dataPath.Replace("/Assets", ""), GENERATE_CODE_TEMP_PATH);
             m_ExportTempPath = System.IO.Path.Combine(Application.dataPath.Replace("/Assets", ""), GENERATE_BINARY_TEMP_PATH);
+
+            var lastSettingGUID = EditorPrefs.GetString("GoogleSheetsTableBuilder_LastSettingGUID");
+            var lastSettingPath = string.IsNullOrWhiteSpace(lastSettingGUID) ? string.Empty : AssetDatabase.GUIDToAssetPath(lastSettingGUID);
+            m_Setting = string.IsNullOrWhiteSpace(lastSettingPath) ? null : AssetDatabase.LoadAssetAtPath<GoogleSheetsSetting>(lastSettingPath);
         }
 
         private void OnGUI()
         {
+            EditorGUILayout.BeginHorizontal();
+            var inputSetting = (GoogleSheetsSetting)EditorGUILayout.ObjectField("Setting", m_Setting, typeof(GoogleSheetsSetting));
+            if (GUILayout.Button("Create", GUILayout.ExpandWidth(false)))
+            {
+                var path = EditorUtility.SaveFilePanel("Create Setting", Application.dataPath, "Setting", "asset");
+                if (string.IsNullOrWhiteSpace(path) == false && path.StartsWith(Application.dataPath))
+                {
+                    var asset = ScriptableObject.CreateInstance<GoogleSheetsSetting>();
+                    AssetDatabase.CreateAsset(asset, path.Replace(Application.dataPath, "Assets"));
+                    inputSetting = asset;
+                }
+            }
+            EditorGUILayout.EndHorizontal();
+            if (m_Setting != inputSetting)
+            {
+                m_Setting = inputSetting;
+                if (m_Setting != null)
+                {
+                    m_ExportPath = m_Setting.exportPath;
+                    m_ExportFullPath = System.IO.Path.Combine(Application.dataPath.Replace("/Assets", ""), m_ExportPath);
+
+                    var settingPath = AssetDatabase.GetAssetPath(m_Setting);
+                    var settingGUID = AssetDatabase.GUIDFromAssetPath(settingPath);
+                    EditorPrefs.SetString("GoogleSheetsTableBuilder_LastSettingGUID", settingGUID.ToString());
+                }
+            }
             if (m_Setting == null)
             {
-                m_Setting = AssetDatabase.LoadAssetAtPath<GoogleSheetsSetting>(GoogleSheetsSetting.PATH);
-                if (m_Setting == null)
-                {
-                    GoogleSheetsSetting.CreateSetting();
-                    m_Setting = AssetDatabase.LoadAssetAtPath<GoogleSheetsSetting>(GoogleSheetsSetting.PATH);
-                }
-                
-                m_ExportPath = m_Setting.exportPath;
-                m_ExportFullPath = System.IO.Path.Combine(Application.dataPath.Replace("/Assets", ""), m_ExportPath);
+                EditorGUILayout.HelpBox("Need Setting", MessageType.Error);
+                return;
             }
 
             m_IsEnableGoogleSheetAPI = GoogleSheetsAPI.Instance.IsCertificating == false && GoogleSheetsAPI.Instance.IsCertificated == true;

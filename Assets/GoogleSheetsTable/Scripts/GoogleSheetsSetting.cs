@@ -8,8 +8,6 @@ namespace GoogleSheetsTable
 {
     public class GoogleSheetsSetting : ScriptableObject
     {
-        public const string PATH = "Assets/GoogleSheetsTable/Setting.asset";
-        
         public string exportPath = "Assets/Resources/Data";
         public string googleClientSecretsPath;
         public Table[] tableSettings;
@@ -29,15 +27,5 @@ namespace GoogleSheetsTable
                 return true;
             }
         }
-
-#if UNITY_EDITOR
-
-        [UnityEditor.MenuItem("Tools/Google Sheets Table/Create Setting")]
-        public static void CreateSetting()
-        {
-            AssetDatabase.CreateAsset(ScriptableObject.CreateInstance(typeof(GoogleSheetsSetting)), PATH);
-        }
-
-#endif
     }
 }
