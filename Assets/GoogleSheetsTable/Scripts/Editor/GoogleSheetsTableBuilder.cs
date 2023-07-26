@@ -51,7 +51,7 @@ namespace GoogleSheetsTable
         private void OnGUI()
         {
             EditorGUILayout.BeginHorizontal();
-            var inputSetting = (GoogleSheetsSetting)EditorGUILayout.ObjectField("Setting", m_Setting, typeof(GoogleSheetsSetting));
+            var inputSetting = (GoogleSheetsSetting)EditorGUILayout.ObjectField("Setting", m_Setting, typeof(GoogleSheetsSetting), false);
             if (GUILayout.Button("Create", GUILayout.ExpandWidth(false)))
             {
                 var path = EditorUtility.SaveFilePanel("Create Setting", Application.dataPath, "Setting", "asset");
@@ -90,6 +90,7 @@ namespace GoogleSheetsTable
             m_ExportBinaryPath = m_Setting.exportBinaryPath;
             m_ExportBinaryFullPath = System.IO.Path.Combine(Application.dataPath.Replace("/Assets", ""), m_ExportBinaryPath);
 
+            EditorGUILayout.Space();
             OnGUI_Certificate();
             EditorGUILayout.Space();
             OnGUI_Tables();
@@ -110,20 +111,13 @@ namespace GoogleSheetsTable
                     m_RequestGenerateTableList.Clear();
                     m_GeneratedTableList.Clear();
                     
-                    System.IO.Directory.CreateDirectory(System.IO.Path.Combine(m_ExportCodeFullPath, "Struct"));
-                    System.IO.Directory.CreateDirectory(System.IO.Path.Combine(m_ExportCodeFullPath, "TableManager"));
+                    System.IO.Directory.CreateDirectory(m_ExportCodeFullPath);
                     System.IO.Directory.CreateDirectory(m_ExportBinaryFullPath);
-                    var tempStructDirectoryInfo = new System.IO.DirectoryInfo(System.IO.Path.Combine(m_ExportCodeTempPath, "Struct"));
-                    var structFileInfos = tempStructDirectoryInfo.GetFiles();
-                    foreach (var fileInfo in structFileInfos)
+                    var tempCodeDirectoryInfo = new System.IO.DirectoryInfo(m_ExportCodeTempPath);
+                    var codeFileInfos = tempCodeDirectoryInfo.GetFiles();
+                    foreach (var fileInfo in codeFileInfos)
                     {
-                        System.IO.File.Copy(fileInfo.FullName, System.IO.Path.Combine(m_ExportCodeFullPath, $"Struct/{fileInfo.Name}"), true);
-                    }
-                    var tempTableManagerDirectoryInfo = new System.IO.DirectoryInfo(System.IO.Path.Combine(m_ExportCodeTempPath, "TableManager"));
-                    var tableManagerFileInfos = tempTableManagerDirectoryInfo.GetFiles();
-                    foreach (var fileInfo in tableManagerFileInfos)
-                    {
-                        System.IO.File.Copy(fileInfo.FullName, System.IO.Path.Combine(m_ExportCodeFullPath, $"TableManager/{fileInfo.Name}"), true);
+                        System.IO.File.Copy(fileInfo.FullName, System.IO.Path.Combine(m_ExportCodeFullPath, fileInfo.Name), true);
                     }
                     var tempExportDirectoryInfo = new System.IO.DirectoryInfo(m_ExportBinaryTempPath);
                     var exportFileInfos = tempExportDirectoryInfo.GetFiles();
@@ -259,18 +253,11 @@ namespace GoogleSheetsTable
             m_RequestGenerateTableList.Clear();
             m_GeneratedTableList.Clear();
 
-            var tempStructPath = System.IO.Path.Combine(m_ExportCodeTempPath, "Struct");
-            var tempTableManagerPath = System.IO.Path.Combine(m_ExportCodeTempPath, "TableManager");
-            System.IO.Directory.CreateDirectory(tempStructPath);
-            System.IO.Directory.CreateDirectory(tempTableManagerPath);
+            System.IO.Directory.CreateDirectory(m_ExportCodeTempPath);
             System.IO.Directory.CreateDirectory(m_ExportBinaryTempPath);
-            var tempStructDirectoryInfo = new System.IO.DirectoryInfo(tempStructPath);
-            var structFileInfos = tempStructDirectoryInfo.GetFiles();
-            foreach (var fileInfo in structFileInfos)
-                System.IO.File.Delete(fileInfo.FullName);
-            var tempTableManagerDirectoryInfo = new System.IO.DirectoryInfo(tempTableManagerPath);
-            var tableManagerFileInfos = tempTableManagerDirectoryInfo.GetFiles();
-            foreach (var fileInfo in tableManagerFileInfos)
+            var tempCodeDirectoryInfo = new System.IO.DirectoryInfo(m_ExportCodeTempPath);
+            var codeFileInfos = tempCodeDirectoryInfo.GetFiles();
+            foreach (var fileInfo in codeFileInfos)
                 System.IO.File.Delete(fileInfo.FullName);
             var tempExportDirectoryInfo = new System.IO.DirectoryInfo(m_ExportBinaryTempPath);
             var exportFileInfos = tempExportDirectoryInfo.GetFiles();
@@ -300,24 +287,50 @@ namespace GoogleSheetsTable
                         for (int colIdx = 0; colIdx < row.Count; colIdx ++)
                         {
                             var value = row[colIdx];
+                            var valueStr = value.ToString().Trim();
                             switch (rowIdx)
                             {
                                 case 0:
-                                    colNames.Add(value.ToString());
+                                    colNames.Add(valueStr);
                                     break;
                                 case 1:
-                                    colTypes.Add(value.ToString());
+                                    switch (valueStr)
+                                    {
+                                        case "string":
+                                        case "string32":
+                                            colTypes.Add("FixedString32Bytes");
+                                            break;
+                                        case "string64":
+                                            colTypes.Add("FixedString64Bytes");
+                                            break;
+                                        case "string128":
+                                            colTypes.Add("FixedString128Bytes");
+                                            break;
+                                        case "string256":
+                                            colTypes.Add("FixedString256Bytes");
+                                            break;
+                                        case "string512":
+                                            colTypes.Add("FixedString512Bytes");
+                                            break;
+                                        case "string4096":
+                                            colTypes.Add("FixedString4096Bytes");
+                                            break;
+                                        default:
+                                            colTypes.Add(valueStr);
+                                            break;
+                                    }
                                     break;
                             }
                         }
                     }
-
+                    
                     if (colNames.Count == 0 || colTypes.Count == 0)
                     {
                         throw new Exception("Column 부족");
                     }
 
                     var strBuilder = new System.Text.StringBuilder();
+                    strBuilder.AppendLine("using Unity.Collections;");
                     strBuilder.AppendLine("namespace GoogleSheetsTable");
                     strBuilder.AppendLine("{");
                     strBuilder.AppendLineFormat("\tpublic partial struct {0}", table.tableName);
@@ -332,40 +345,58 @@ namespace GoogleSheetsTable
                     strBuilder.AppendLine("\t\t{");
                     for (int colIdx = 0; colIdx < colCnt; colIdx ++)
                     {
-                        strBuilder.AppendFormat("\t\t\t{0} = ", colNames[colIdx]);
                         switch (colTypes[colIdx])
                         {
-                            case "string":
-                                strBuilder.Append("binaryReader.ReadString();");
+                            case "FixedString32Bytes":
+                            case "FixedString64Bytes":
+                            case "FixedString128Bytes":
+                            case "FixedString256Bytes":
+                            case "FixedString512Bytes":
+                            case "FixedString4096Bytes":
+                                strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadString());", colNames[colIdx], colTypes[colIdx]);
+                                break;
+                            case "byte":
+                                strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadByte();", colNames[colIdx]);
                                 break;
                             case "short":
-                                strBuilder.Append("binaryReader.ReadInt16();");
+                            case "Int16":
+                                strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadInt16();", colNames[colIdx]);
                                 break;
                             case "int":
-                                strBuilder.Append("binaryReader.ReadInt32();");
+                            case "Int32":
+                                strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadInt32();", colNames[colIdx]);
                                 break;
                             case "long":
-                                strBuilder.Append("binaryReader.ReadInt64();");
+                            case "Int64":
+                                strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadInt64();", colNames[colIdx]);
+                                break;
+                            case "decimal":
+                            case "Decimal":
+                                strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadDecimal();", colNames[colIdx]);
                                 break;
                             case "float":
-                                strBuilder.Append("binaryReader.ReadSingle();");
+                            case "Single":
+                                strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadSingle();", colNames[colIdx]);
+                                break;
+                            case "double":
+                            case "Double":
+                                strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadDouble();", colNames[colIdx]);
                                 break;
                             case "bool":
-                                strBuilder.Append("binaryReader.ReadBoolean();");
+                            case "Boolean":
+                                strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadBoolean();", colNames[colIdx]);
                                 break;
                             default:
-                                strBuilder.Append("default;");
+                                strBuilder.AppendLineFormat("\t\t\t{0} = default;", colNames[colIdx]);
                                 break;
                         }
-                        strBuilder.Append('\n');
                     }
                     strBuilder.AppendLine("\t\t}");
                     strBuilder.AppendLine("\t}");
                     strBuilder.AppendLine("}");
 
-                    var generateStructPath = System.IO.Path.Combine(m_ExportCodeTempPath, $"Struct/{table.tableName}.cs");
+                    var generateStructPath = System.IO.Path.Combine(m_ExportCodeTempPath, $"{table.tableName}.cs");
                     System.IO.File.WriteAllText(generateStructPath, strBuilder.ToString());
-
 
                     strBuilder.Clear();
                     strBuilder.AppendLine("using System.Collections;");
@@ -374,21 +405,25 @@ namespace GoogleSheetsTable
                     strBuilder.AppendLine("{");
                     strBuilder.AppendLine("\tpublic partial class TableManager");
                     strBuilder.AppendLine("\t{");
-                    strBuilder.AppendLineFormat("\t\tprivate Dictionary<{1}, {0}> m_Dic{0} = new Dictionary<int, {0}>();", table.tableName, colTypes[0]);
+                    strBuilder.AppendLineFormat("\t\tprivate readonly Dictionary<{1}, {0}> m_Dic{0} = new Dictionary<int, {0}>();", table.tableName, colTypes[0]);
                     strBuilder.AppendLineFormat("\t\tpublic void LoadTable_{0}(System.IO.BinaryReader binaryReader)", table.tableName);
                     strBuilder.AppendLine("\t\t{");
                     strBuilder.AppendLineFormat("\t\t\tm_Dic{0}.Clear();", table.tableName);
                     strBuilder.AppendLine("\t\t\tvar count = binaryReader.ReadInt32();");
-                    strBuilder.AppendLine("\t\t\tfor (int i = 0; i < count; i ++)");
+                    strBuilder.AppendLine("\t\t\tfor (var i = 0; i < count; i ++)");
                     strBuilder.AppendLine("\t\t\t{");
                     strBuilder.AppendLineFormat("\t\t\t\tvar data = new {0}(binaryReader);", table.tableName);
                     strBuilder.AppendLineFormat("\t\t\t\tm_Dic{0}.Add(data.{1}, data);", table.tableName, colNames[0]);
                     strBuilder.AppendLine("\t\t\t}");
                     strBuilder.AppendLine("\t\t}");
+                    strBuilder.AppendLineFormat("\t\tpublic {0} Get{0}By{1}({2} {3})", table.tableName, colNames[0], colTypes[0], colNames[0].ToLower());
+                    strBuilder.AppendLine("\t\t{");
+                    strBuilder.AppendLineFormat("\t\t\treturn m_Dic{0}[{1}];", table.tableName, colNames[0].ToLower());
+                    strBuilder.AppendLine("\t\t}");
                     strBuilder.AppendLine("\t}");
                     strBuilder.AppendLine("}");
 
-                    var generateTableManagerPath = System.IO.Path.Combine(m_ExportCodeTempPath, $"TableManager/TableManager_{table.tableName}.cs");
+                    var generateTableManagerPath = System.IO.Path.Combine(m_ExportCodeTempPath, $"TableManager_{table.tableName}.cs");
                     System.IO.File.WriteAllText(generateTableManagerPath, strBuilder.ToString());
 
 
@@ -404,22 +439,42 @@ namespace GoogleSheetsTable
                             var valueStr = value == null ? string.Empty : value.ToString();
                             switch (colTypes[colIdx])
                             {
-                                case "string":
+                                case "FixedString32Bytes":
+                                case "FixedString64Bytes":
+                                case "FixedString128Bytes":
+                                case "FixedString512Bytes":
+                                case "FixedString4096Bytes":
                                     binaryWriter.Write(valueStr);
                                     break;
+                                case "byte":
+                                    binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : byte.Parse(valueStr));
+                                    break;
                                 case "short":
+                                case "Int16":
                                     binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : short.Parse(valueStr));
                                     break;
                                 case "int":
+                                case "Int32":
                                     binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : int.Parse(valueStr));
                                     break;
                                 case "long":
+                                case "Int64":
                                     binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : long.Parse(valueStr));
                                     break;
+                                case "decimal":
+                                case "Decimal":
+                                    binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : decimal.Parse(valueStr));
+                                    break;
                                 case "float":
+                                case "Single":
                                     binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : float.Parse(valueStr));
                                     break;
+                                case "double":
+                                case "Double":
+                                    binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : double.Parse(valueStr));
+                                    break;
                                 case "bool":
+                                case "Boolean":
                                     binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : bool.Parse(valueStr));
                                     break;
                             }
