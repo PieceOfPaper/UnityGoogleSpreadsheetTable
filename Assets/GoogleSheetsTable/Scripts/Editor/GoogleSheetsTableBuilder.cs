@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using Unity.VisualScripting;
 using UnityEditor;
 using UnityEngine;
@@ -280,14 +279,14 @@ namespace GoogleSheetsTable
                 {
                     var colNames = new List<string>();
                     var colTypes = new List<string>();
-                    for (int rowIdx = 0; rowIdx < values.Count; rowIdx ++)
+                    for (var rowIdx = 0; rowIdx < values.Count; rowIdx ++)
                     {
                         if (rowIdx >= 2) break;
                         var row = values[rowIdx];
-                        for (int colIdx = 0; colIdx < row.Count; colIdx ++)
+                        for (var colIdx = 0; colIdx < row.Count; colIdx ++)
                         {
                             var value = row[colIdx];
-                            var valueStr = value.ToString().Trim();
+                            var valueStr = value == null ? string.Empty : value.ToString().Trim();
                             switch (rowIdx)
                             {
                                 case 0:
@@ -296,7 +295,6 @@ namespace GoogleSheetsTable
                                 case 1:
                                     switch (valueStr)
                                     {
-                                        case "string":
                                         case "string32":
                                             colTypes.Add("FixedString32Bytes");
                                             break;
@@ -326,7 +324,32 @@ namespace GoogleSheetsTable
                     
                     if (colNames.Count == 0 || colTypes.Count == 0)
                     {
-                        throw new Exception("Column 부족");
+                        lock (m_GeneratedTableList)
+                        {
+                            m_GeneratedTableList.Add(table);
+                        }
+                        Debug.LogError($"Table Generate Error - {table.tableName} 열 갯수 부족");
+                        return;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(colNames[0]))
+                    {
+                        lock (m_GeneratedTableList)
+                        {
+                            m_GeneratedTableList.Add(table);
+                        }
+                        Debug.LogError($"Table Generate Error - {table.tableName} 첫번째 열 이름이 없음");
+                        return;
+                    }
+                    
+                    if (string.IsNullOrWhiteSpace(colTypes[0]))
+                    {
+                        lock (m_GeneratedTableList)
+                        {
+                            m_GeneratedTableList.Add(table);
+                        }
+                        Debug.LogError($"Table Generate Error - {table.tableName} 첫번째 열 타입이 없음");
+                        return;
                     }
 
                     var strBuilder = new System.Text.StringBuilder();
@@ -337,14 +360,19 @@ namespace GoogleSheetsTable
                     strBuilder.AppendLine("\t{");
 
                     var colCnt = System.Math.Min(colNames.Count, colTypes.Count);
-                    for (int colIdx = 0; colIdx < colCnt; colIdx ++)
+                    for (var colIdx = 0; colIdx < colCnt; colIdx ++)
                     {
+                        if (string.IsNullOrWhiteSpace(colNames[colIdx])) continue;
+                        if (string.IsNullOrWhiteSpace(colTypes[colIdx])) continue;
                         strBuilder.AppendLineFormat("\t\tpublic readonly {0} {1};", colTypes[colIdx], colNames[colIdx]);
                     }
                     strBuilder.AppendLineFormat("\t\tpublic {0}(System.IO.BinaryReader binaryReader)", table.tableName);
                     strBuilder.AppendLine("\t\t{");
-                    for (int colIdx = 0; colIdx < colCnt; colIdx ++)
+                    for (var colIdx = 0; colIdx < colCnt; colIdx ++)
                     {
+                        if (string.IsNullOrWhiteSpace(colNames[colIdx])) continue;
+                        if (string.IsNullOrWhiteSpace(colTypes[colIdx])) continue;
+                        
                         switch (colTypes[colIdx])
                         {
                             case "FixedString32Bytes":
@@ -355,7 +383,12 @@ namespace GoogleSheetsTable
                             case "FixedString4096Bytes":
                                 strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadString());", colNames[colIdx], colTypes[colIdx]);
                                 break;
+                            case "string":
+                            case "String":
+                                strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadString();", colNames[colIdx]);
+                                break;
                             case "byte":
+                            case "Byte":
                                 strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadByte();", colNames[colIdx]);
                                 break;
                             case "short":
@@ -395,8 +428,19 @@ namespace GoogleSheetsTable
                     strBuilder.AppendLine("\t}");
                     strBuilder.AppendLine("}");
 
-                    var generateStructPath = System.IO.Path.Combine(m_ExportCodeTempPath, $"{table.tableName}.cs");
-                    System.IO.File.WriteAllText(generateStructPath, strBuilder.ToString());
+                    try
+                    {
+                        System.IO.File.WriteAllText(System.IO.Path.Combine(m_ExportCodeTempPath, $"{table.tableName}.cs"), strBuilder.ToString());
+                    }
+                    catch (Exception e)
+                    {
+                        lock (m_GeneratedTableList)
+                        {
+                            m_GeneratedTableList.Add(table);
+                        }
+                        Debug.LogError($"Table Generate Error - {table.tableName} Struct 코드 저장 실패\n{e}");
+                        return;
+                    }
 
                     strBuilder.Clear();
                     strBuilder.AppendLine("using System.Collections;");
@@ -420,68 +464,103 @@ namespace GoogleSheetsTable
                     strBuilder.AppendLine("\t\t{");
                     strBuilder.AppendLineFormat("\t\t\treturn m_Dic{0}[{1}];", table.tableName, colNames[0].ToLower());
                     strBuilder.AppendLine("\t\t}");
+                    strBuilder.AppendLineFormat("\t\tpublic int Get{0}DataCount()", table.tableName);
+                    strBuilder.AppendLine("\t\t{");
+                    strBuilder.AppendLineFormat("\t\t\treturn m_Dic{0}.Count;", table.tableName);
+                    strBuilder.AppendLine("\t\t}");
                     strBuilder.AppendLine("\t}");
                     strBuilder.AppendLine("}");
 
-                    var generateTableManagerPath = System.IO.Path.Combine(m_ExportCodeTempPath, $"TableManager_{table.tableName}.cs");
-                    System.IO.File.WriteAllText(generateTableManagerPath, strBuilder.ToString());
-
-
-                    var fileStream = new System.IO.FileStream(System.IO.Path.Combine(m_ExportBinaryTempPath, $"{table.tableName.ToLower()}.bytes"), FileMode.Create);
-                    var binaryWriter = new System.IO.BinaryWriter(fileStream);
-                    binaryWriter.Write(values.Count - 2);
-                    for (int rowIdx = 2; rowIdx < values.Count; rowIdx ++)
+                    try
                     {
-                        var row = values[rowIdx];
-                        for (int colIdx = 0; colIdx < row.Count; colIdx ++)
+                        System.IO.File.WriteAllText(System.IO.Path.Combine(m_ExportCodeTempPath, $"TableManager_{table.tableName}.cs"), strBuilder.ToString());
+                    }
+                    catch (Exception e)
+                    {
+                        lock (m_GeneratedTableList)
                         {
-                            var value = row[colIdx];
-                            var valueStr = value == null ? string.Empty : value.ToString();
-                            switch (colTypes[colIdx])
+                            m_GeneratedTableList.Add(table);
+                        }
+                        Debug.LogError($"Table Generate Error - {table.tableName} TableManager 코드 저장 실패\n{e}");
+                        return;
+                    }
+
+
+                    try
+                    {
+                        var fileStream = new System.IO.FileStream(System.IO.Path.Combine(m_ExportBinaryTempPath, $"{table.tableName.ToLower()}.bytes"), System.IO.FileMode.Create);
+                        var binaryWriter = new System.IO.BinaryWriter(fileStream);
+                        binaryWriter.Write(values.Count - 2);
+                        for (var rowIdx = 2; rowIdx < values.Count; rowIdx ++)
+                        {
+                            var row = values[rowIdx];
+                            for (var colIdx = 0; colIdx < row.Count; colIdx ++)
                             {
-                                case "FixedString32Bytes":
-                                case "FixedString64Bytes":
-                                case "FixedString128Bytes":
-                                case "FixedString512Bytes":
-                                case "FixedString4096Bytes":
-                                    binaryWriter.Write(valueStr);
-                                    break;
-                                case "byte":
-                                    binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : byte.Parse(valueStr));
-                                    break;
-                                case "short":
-                                case "Int16":
-                                    binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : short.Parse(valueStr));
-                                    break;
-                                case "int":
-                                case "Int32":
-                                    binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : int.Parse(valueStr));
-                                    break;
-                                case "long":
-                                case "Int64":
-                                    binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : long.Parse(valueStr));
-                                    break;
-                                case "decimal":
-                                case "Decimal":
-                                    binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : decimal.Parse(valueStr));
-                                    break;
-                                case "float":
-                                case "Single":
-                                    binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : float.Parse(valueStr));
-                                    break;
-                                case "double":
-                                case "Double":
-                                    binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : double.Parse(valueStr));
-                                    break;
-                                case "bool":
-                                case "Boolean":
-                                    binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : bool.Parse(valueStr));
-                                    break;
+                                if (string.IsNullOrWhiteSpace(colNames[colIdx])) continue;
+                                if (string.IsNullOrWhiteSpace(colTypes[colIdx])) continue;
+
+                                var value = row[colIdx];
+                                var valueStr = value == null ? string.Empty : value.ToString();
+                                if (colIdx == 0 && string.IsNullOrWhiteSpace(valueStr)) break;
+
+                                switch (colTypes[colIdx])
+                                {
+                                    case "FixedString32Bytes":
+                                    case "FixedString64Bytes":
+                                    case "FixedString128Bytes":
+                                    case "FixedString512Bytes":
+                                    case "FixedString4096Bytes":
+                                    case "string":
+                                    case "String":
+                                        binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? string.Empty : valueStr);
+                                        break;
+                                    case "byte":
+                                    case "Byte":
+                                        binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : byte.Parse(valueStr));
+                                        break;
+                                    case "short":
+                                    case "Int16":
+                                        binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : short.Parse(valueStr));
+                                        break;
+                                    case "int":
+                                    case "Int32":
+                                        binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : int.Parse(valueStr));
+                                        break;
+                                    case "long":
+                                    case "Int64":
+                                        binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : long.Parse(valueStr));
+                                        break;
+                                    case "decimal":
+                                    case "Decimal":
+                                        binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : decimal.Parse(valueStr));
+                                        break;
+                                    case "float":
+                                    case "Single":
+                                        binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : float.Parse(valueStr));
+                                        break;
+                                    case "double":
+                                    case "Double":
+                                        binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : double.Parse(valueStr));
+                                        break;
+                                    case "bool":
+                                    case "Boolean":
+                                        binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : bool.Parse(valueStr));
+                                        break;
+                                }
                             }
                         }
+                        binaryWriter.Close();
+                        fileStream.Close();
                     }
-                    binaryWriter.Close();
-                    fileStream.Close();
+                    catch (Exception e)
+                    {
+                        lock (m_GeneratedTableList)
+                        {
+                            m_GeneratedTableList.Add(table);
+                        }
+                        Debug.LogError($"Table Generate Error - {table.tableName} Binary 저장 실패\n{e}");
+                        return;
+                    }
 
                     lock (m_GeneratedTableList)
                     {
