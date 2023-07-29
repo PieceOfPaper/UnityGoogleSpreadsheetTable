@@ -353,6 +353,7 @@ namespace GoogleSheetsTable
                     }
 
                     var strBuilder = new System.Text.StringBuilder();
+                    strBuilder.AppendLine("using System;");
                     strBuilder.AppendLine("using UnityEngine;");
                     strBuilder.AppendLine("using Unity.Mathematics;");
                     strBuilder.AppendLine("using Unity.Collections;");
