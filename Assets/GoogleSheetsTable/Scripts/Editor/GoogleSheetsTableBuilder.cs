@@ -353,6 +353,8 @@ namespace GoogleSheetsTable
                     }
 
                     var strBuilder = new System.Text.StringBuilder();
+                    strBuilder.AppendLine("using UnityEngine;");
+                    strBuilder.AppendLine("using Unity.Mathematics;");
                     strBuilder.AppendLine("using Unity.Collections;");
                     strBuilder.AppendLine("namespace GoogleSheetsTable");
                     strBuilder.AppendLine("{");
@@ -364,7 +366,16 @@ namespace GoogleSheetsTable
                     {
                         if (string.IsNullOrWhiteSpace(colNames[colIdx])) continue;
                         if (string.IsNullOrWhiteSpace(colTypes[colIdx])) continue;
-                        strBuilder.AppendLineFormat("\t\tpublic readonly {0} {1};", colTypes[colIdx], colNames[colIdx]);
+
+                        var colName = colNames[colIdx];
+                        var colType = colTypes[colIdx];
+                        switch (colType)
+                        {
+                            case "ColorCode":
+                                colType = "Color";
+                                break;
+                        }
+                        strBuilder.AppendLineFormat("\t\tpublic readonly {0} {1};", colType, colName);
                     }
                     strBuilder.AppendLineFormat("\t\tpublic {0}(System.IO.BinaryReader binaryReader)", table.tableName);
                     strBuilder.AppendLine("\t\t{");
@@ -418,6 +429,34 @@ namespace GoogleSheetsTable
                             case "bool":
                             case "Boolean":
                                 strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadBoolean();", colNames[colIdx]);
+                                break;
+                            case "Vector2Int":
+                            case "int2":
+                                strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadInt32(), binaryReader.ReadInt32());", colNames[colIdx], colTypes[colIdx]);
+                                break;
+                            case "Vector3Int":
+                            case "int3":
+                                strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadInt32(), binaryReader.ReadInt32(), binaryReader.ReadInt32());", colNames[colIdx], colTypes[colIdx]);
+                                break;
+                            case "Vector4Int":
+                            case "int4":
+                                strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadInt32(), binaryReader.ReadInt32(), binaryReader.ReadInt32(), binaryReader.ReadInt32());", colNames[colIdx], colTypes[colIdx]);
+                                break;
+                            case "Vector2":
+                            case "float2":
+                                strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadSingle(), binaryReader.ReadSingle());", colNames[colIdx], colTypes[colIdx]);
+                                break;
+                            case "Vector3":
+                            case "float3":
+                                strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadSingle(), binaryReader.ReadSingle(), binaryReader.ReadSingle());", colNames[colIdx], colTypes[colIdx]);
+                                break;
+                            case "Vector4":
+                            case "float4":
+                                strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadSingle(), binaryReader.ReadSingle(), binaryReader.ReadSingle(), binaryReader.ReadSingle());", colNames[colIdx], colTypes[colIdx]);
+                                break;
+                            case "Color":
+                            case "ColorCode":
+                                strBuilder.AppendLineFormat("\t\t\t{0} = new Color32(binaryReader.ReadByte(), binaryReader.ReadByte(), binaryReader.ReadByte(), binaryReader.ReadByte());", colNames[colIdx]);
                                 break;
                             default:
                                 strBuilder.AppendLineFormat("\t\t\t{0} = default;", colNames[colIdx]);
@@ -545,6 +584,82 @@ namespace GoogleSheetsTable
                                     case "bool":
                                     case "Boolean":
                                         binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : bool.Parse(valueStr));
+                                        break;
+                                    case "Vector2Int":
+                                    case "int2":
+                                        {
+                                            var splited = valueStr.Split(',');
+                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[0]) ? default : int.Parse(splited[0].Trim()));
+                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[1]) ? default : int.Parse(splited[1].Trim()));
+                                        }
+                                        break;
+                                    case "Vector3Int":
+                                    case "int3":
+                                        {
+                                            var splited = valueStr.Split(',');
+                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[0]) ? default : int.Parse(splited[0].Trim()));
+                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[1]) ? default : int.Parse(splited[1].Trim()));
+                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[2]) ? default : int.Parse(splited[2].Trim()));
+                                        }
+                                        break;
+                                    case "Vector4Int":
+                                    case "int4":
+                                        {
+                                            var splited = valueStr.Split(',');
+                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[0]) ? default : int.Parse(splited[0].Trim()));
+                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[1]) ? default : int.Parse(splited[1].Trim()));
+                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[2]) ? default : int.Parse(splited[2].Trim()));
+                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[3]) ? default : int.Parse(splited[3].Trim()));
+                                        }
+                                        break;
+                                    case "Vector2":
+                                    case "float2":
+                                        {
+                                            var splited = valueStr.Split(',');
+                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[0]) ? default : float.Parse(splited[0].Trim()));
+                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[1]) ? default : float.Parse(splited[1].Trim()));
+                                        }
+                                        break;
+                                    case "Vector3":
+                                    case "float3":
+                                        {
+                                            var splited = valueStr.Split(',');
+                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[0]) ? default : float.Parse(splited[0].Trim()));
+                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[1]) ? default : float.Parse(splited[1].Trim()));
+                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[2]) ? default : float.Parse(splited[2].Trim()));
+                                        }
+                                        break;
+                                    case "Vector4":
+                                    case "float4":
+                                        {
+                                            var splited = valueStr.Split(',');
+                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[0]) ? default : float.Parse(splited[0].Trim()));
+                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[1]) ? default : float.Parse(splited[1].Trim()));
+                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[2]) ? default : float.Parse(splited[2].Trim()));
+                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[3]) ? default : float.Parse(splited[3].Trim()));
+                                        }
+                                        break;
+                                    case "Color":
+                                        {
+                                            var splited = valueStr.Split(',');
+                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[0]) ? default : byte.Parse(splited[0].Trim()));
+                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[1]) ? default : byte.Parse(splited[1].Trim()));
+                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[2]) ? default : byte.Parse(splited[2].Trim()));
+                                            if (splited.Length < 4)
+                                                binaryWriter.Write(byte.MaxValue);
+                                            else
+                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[3]) ? default : byte.Parse(splited[3].Trim()));
+                                        }
+                                        break;
+                                    case "ColorCode":
+                                        {
+                                            var color = new Color(1.0f, 1.0f, 1.0f, 1.0f);
+                                            UnityEngine.ColorUtility.TryParseHtmlString(valueStr, out color);
+                                            binaryWriter.Write((byte)Mathf.RoundToInt(color.r * byte.MaxValue));
+                                            binaryWriter.Write((byte)Mathf.RoundToInt(color.g * byte.MaxValue));
+                                            binaryWriter.Write((byte)Mathf.RoundToInt(color.b * byte.MaxValue));
+                                            binaryWriter.Write((byte)Mathf.RoundToInt(color.a * byte.MaxValue));
+                                        }
                                         break;
                                 }
                             }
