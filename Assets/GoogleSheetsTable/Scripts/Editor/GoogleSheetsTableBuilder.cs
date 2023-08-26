@@ -502,6 +502,7 @@ namespace GoogleSheetsTable
                     strBuilder.AppendLine("\t\t}");
                     strBuilder.AppendLineFormat("\t\tpublic {0} Get{0}By{1}({2} {3})", table.tableName, colNames[0], colTypes[0], colNames[0].ToLower());
                     strBuilder.AppendLine("\t\t{");
+                    strBuilder.AppendLineFormat("\t\t\tif (m_Dic{0}.ContainsKey({1}) == false) return default;", table.tableName, colNames[0].ToLower());
                     strBuilder.AppendLineFormat("\t\t\treturn m_Dic{0}[{1}];", table.tableName, colNames[0].ToLower());
                     strBuilder.AppendLine("\t\t}");
                     strBuilder.AppendLineFormat("\t\tpublic int Get{0}DataCount()", table.tableName);
