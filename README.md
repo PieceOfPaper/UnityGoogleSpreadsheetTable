@@ -9,3 +9,37 @@
 https://console.cloud.google.com/apis/credentials
 1. 사용자 인증 정보 만들기 - OAuth 클라이언트 ID
 2. OAuth 클라이언트 ID JSON 파일 다운로드
+
+## 3. 사용 가능한 자료형
+### C#
+ - string (String)
+ - byte (Byte)
+ - short (Int16)
+ - int (Int32)
+ - long (Int64)
+ - float (Single)
+ - double (Double)
+### Unity
+ - Vector2
+ - Vector3
+ - Vector4
+ - Vector2Int
+ - Vector3Int
+ - Vector4Int
+ - Color
+### Unity.Mathematics
+ - int2
+ - int3
+ - int4
+ - float2
+ - float3
+ - float4
+### Unity.Collections
+ - FixedString32Bytes (string32로도 입력 가능)
+ - FixedString64Bytes (string64로도 입력 가능)
+ - FixedString128Bytes (string128로도 입력 가능)
+ - FixedString256Bytes (string256로도 입력 가능)
+ - FixedString512Bytes (string512로도 입력 가능)
+ - FixedString4096Bytes (string4096로도 입력 가능)
+### Others
+ - ColorCode (Hex코드로 입력, 코드는 UnityEngine.Color로 생성됨)
