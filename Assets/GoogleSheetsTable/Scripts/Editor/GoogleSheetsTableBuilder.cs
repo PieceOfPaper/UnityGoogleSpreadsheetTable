@@ -164,8 +164,16 @@ namespace GoogleSheetsTable
             {
                 if (GUILayout.Button("Certificate", GUILayout.ExpandWidth(false)))
                 {
-                    var textAsset = AssetDatabase.LoadAssetAtPath<TextAsset>(m_Setting.googleClientSecretsPath);
-                    GoogleSheetsAPI.Instance.Certificate(textAsset.text);
+                    if (m_Setting.googleClientSecretsPath.StartsWith("Assets/"))
+                    {
+                        var textAsset = AssetDatabase.LoadAssetAtPath<TextAsset>(m_Setting.googleClientSecretsPath);
+                        GoogleSheetsAPI.Instance.Certificate(textAsset.text);   
+                    }
+                    else
+                    {
+                        var text = System.IO.File.ReadAllText(m_Setting.googleClientSecretsPath);
+                        GoogleSheetsAPI.Instance.Certificate(text);   
+                    }
                 }
             }
             EditorGUILayout.EndHorizontal();
