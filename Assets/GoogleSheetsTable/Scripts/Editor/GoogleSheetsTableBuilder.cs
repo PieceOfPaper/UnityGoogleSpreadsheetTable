@@ -285,6 +285,16 @@ namespace GoogleSheetsTable
                 $"{table.sheetName}!{table.dataRange}",
                 values =>
                 {
+                    if (values == null || values.Count == 0)
+                    {
+                        lock (m_GeneratedTableList)
+                        {
+                            m_GeneratedTableList.Add(table);
+                        }
+                        Debug.LogError($"Table Generate Error - {table.tableName} 값이 없음.");
+                        return;
+                    }
+                    
                     var colNames = new List<string>();
                     var colTypes = new List<string>();
                     for (var rowIdx = 0; rowIdx < values.Count; rowIdx ++)
