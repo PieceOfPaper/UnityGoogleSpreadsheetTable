@@ -388,12 +388,21 @@ namespace GoogleSheetsTable
 
                         var colName = colNames[colIdx];
                         var colType = colTypes[colIdx];
-                        switch (colType)
+
+                        if (colTypes[colIdx].StartsWith("enum:"))
                         {
-                            case "ColorCode":
-                                colType = "Color";
-                                break;
+                            colType = colTypes[colIdx].Substring(5);
                         }
+                        else
+                        {
+                            switch (colType)
+                            {
+                                case "ColorCode":
+                                    colType = "Color";
+                                    break;
+                            }
+                        }
+                        
                         strBuilder.AppendLineFormat("\t\tpublic readonly {0} {1};", colType, colName);
                     }
                     strBuilder.AppendLineFormat("\t\tpublic {0}(System.IO.BinaryReader binaryReader)", table.tableName);
@@ -402,84 +411,105 @@ namespace GoogleSheetsTable
                     {
                         if (string.IsNullOrWhiteSpace(colNames[colIdx])) continue;
                         if (string.IsNullOrWhiteSpace(colTypes[colIdx])) continue;
-                        
-                        switch (colTypes[colIdx])
+
+                        if (colTypes[colIdx].StartsWith("enum:"))
                         {
-                            case "FixedString32Bytes":
-                            case "FixedString64Bytes":
-                            case "FixedString128Bytes":
-                            case "FixedString256Bytes":
-                            case "FixedString512Bytes":
-                            case "FixedString4096Bytes":
-                                strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadString());", colNames[colIdx], colTypes[colIdx]);
-                                break;
-                            case "string":
-                            case "String":
-                                strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadString();", colNames[colIdx]);
-                                break;
-                            case "byte":
-                            case "Byte":
-                                strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadByte();", colNames[colIdx]);
-                                break;
-                            case "short":
-                            case "Int16":
-                                strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadInt16();", colNames[colIdx]);
-                                break;
-                            case "int":
-                            case "Int32":
-                                strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadInt32();", colNames[colIdx]);
-                                break;
-                            case "long":
-                            case "Int64":
-                                strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadInt64();", colNames[colIdx]);
-                                break;
-                            case "decimal":
-                            case "Decimal":
-                                strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadDecimal();", colNames[colIdx]);
-                                break;
-                            case "float":
-                            case "Single":
-                                strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadSingle();", colNames[colIdx]);
-                                break;
-                            case "double":
-                            case "Double":
-                                strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadDouble();", colNames[colIdx]);
-                                break;
-                            case "bool":
-                            case "Boolean":
-                                strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadBoolean();", colNames[colIdx]);
-                                break;
-                            case "Vector2Int":
-                            case "int2":
-                                strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadInt32(), binaryReader.ReadInt32());", colNames[colIdx], colTypes[colIdx]);
-                                break;
-                            case "Vector3Int":
-                            case "int3":
-                                strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadInt32(), binaryReader.ReadInt32(), binaryReader.ReadInt32());", colNames[colIdx], colTypes[colIdx]);
-                                break;
-                            case "Vector4Int":
-                            case "int4":
-                                strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadInt32(), binaryReader.ReadInt32(), binaryReader.ReadInt32(), binaryReader.ReadInt32());", colNames[colIdx], colTypes[colIdx]);
-                                break;
-                            case "Vector2":
-                            case "float2":
-                                strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadSingle(), binaryReader.ReadSingle());", colNames[colIdx], colTypes[colIdx]);
-                                break;
-                            case "Vector3":
-                            case "float3":
-                                strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadSingle(), binaryReader.ReadSingle(), binaryReader.ReadSingle());", colNames[colIdx], colTypes[colIdx]);
-                                break;
-                            case "Vector4":
-                            case "float4":
-                                strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadSingle(), binaryReader.ReadSingle(), binaryReader.ReadSingle(), binaryReader.ReadSingle());", colNames[colIdx], colTypes[colIdx]);
-                                break;
-                            case "Color":
-                            case "ColorCode":
-                                strBuilder.AppendLineFormat("\t\t\t{0} = new Color32(binaryReader.ReadByte(), binaryReader.ReadByte(), binaryReader.ReadByte(), binaryReader.ReadByte());", colNames[colIdx]);
-                                break;
-                            default:
-                                strBuilder.AppendLineFormat("\t\t\t{0} = default;", colNames[colIdx]);
-                                break;
+                            var assembly = System.Reflection.Assembly.GetAssembly(typeof(GoogleSheetsAPI));
+                            var enumName = colTypes[colIdx].Substring(5);
+                            var enumType = assembly.GetType(enumName);
+                            if (enumType != null)
+                            {
+                                var underlyingType = Enum.GetUnderlyingType(enumType);
+                                if (underlyingType == typeof(byte))
+                                    strBuilder.AppendLineFormat("\t\t\t{0} = ({1})binaryReader.ReadByte();", colNames[colIdx], enumName);
+                                else if (underlyingType == typeof(short))
+                                    strBuilder.AppendLineFormat("\t\t\t{0} = ({1})binaryReader.ReadInt16();", colNames[colIdx], enumName);
+                                else if (underlyingType == typeof(int))
+                                    strBuilder.AppendLineFormat("\t\t\t{0} = ({1})binaryReader.ReadInt32();", colNames[colIdx], enumName);
+                                else if (underlyingType == typeof(long))
+                                    strBuilder.AppendLineFormat("\t\t\t{0} = ({1})binaryReader.ReadInt64();", colNames[colIdx], enumName);
+                            }
+                        }
+                        else
+                        {
+                            switch (colTypes[colIdx])
+                            {
+                                case "FixedString32Bytes":
+                                case "FixedString64Bytes":
+                                case "FixedString128Bytes":
+                                case "FixedString256Bytes":
+                                case "FixedString512Bytes":
+                                case "FixedString4096Bytes":
+                                    strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadString());", colNames[colIdx], colTypes[colIdx]);
+                                    break;
+                                case "string":
+                                case "String":
+                                    strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadString();", colNames[colIdx]);
+                                    break;
+                                case "byte":
+                                case "Byte":
+                                    strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadByte();", colNames[colIdx]);
+                                    break;
+                                case "short":
+                                case "Int16":
+                                    strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadInt16();", colNames[colIdx]);
+                                    break;
+                                case "int":
+                                case "Int32":
+                                    strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadInt32();", colNames[colIdx]);
+                                    break;
+                                case "long":
+                                case "Int64":
+                                    strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadInt64();", colNames[colIdx]);
+                                    break;
+                                case "decimal":
+                                case "Decimal":
+                                    strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadDecimal();", colNames[colIdx]);
+                                    break;
+                                case "float":
+                                case "Single":
+                                    strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadSingle();", colNames[colIdx]);
+                                    break;
+                                case "double":
+                                case "Double":
+                                    strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadDouble();", colNames[colIdx]);
+                                    break;
+                                case "bool":
+                                case "Boolean":
+                                    strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadBoolean();", colNames[colIdx]);
+                                    break;
+                                case "Vector2Int":
+                                case "int2":
+                                    strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadInt32(), binaryReader.ReadInt32());", colNames[colIdx], colTypes[colIdx]);
+                                    break;
+                                case "Vector3Int":
+                                case "int3":
+                                    strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadInt32(), binaryReader.ReadInt32(), binaryReader.ReadInt32());", colNames[colIdx], colTypes[colIdx]);
+                                    break;
+                                case "Vector4Int":
+                                case "int4":
+                                    strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadInt32(), binaryReader.ReadInt32(), binaryReader.ReadInt32(), binaryReader.ReadInt32());", colNames[colIdx], colTypes[colIdx]);
+                                    break;
+                                case "Vector2":
+                                case "float2":
+                                    strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadSingle(), binaryReader.ReadSingle());", colNames[colIdx], colTypes[colIdx]);
+                                    break;
+                                case "Vector3":
+                                case "float3":
+                                    strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadSingle(), binaryReader.ReadSingle(), binaryReader.ReadSingle());", colNames[colIdx], colTypes[colIdx]);
+                                    break;
+                                case "Vector4":
+                                case "float4":
+                                    strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadSingle(), binaryReader.ReadSingle(), binaryReader.ReadSingle(), binaryReader.ReadSingle());", colNames[colIdx], colTypes[colIdx]);
+                                    break;
+                                case "Color":
+                                case "ColorCode":
+                                    strBuilder.AppendLineFormat("\t\t\t{0} = new Color32(binaryReader.ReadByte(), binaryReader.ReadByte(), binaryReader.ReadByte(), binaryReader.ReadByte());", colNames[colIdx]);
+                                    break;
+                                default:
+                                    strBuilder.AppendLineFormat("\t\t\t{0} = default;", colNames[colIdx]);
+                                    break;
+                            }
                         }
                     }
                     strBuilder.AppendLine("\t\t}");
@@ -562,125 +592,158 @@ namespace GoogleSheetsTable
                                 var valueStr = value == null ? string.Empty : value.ToString();
                                 if (colIdx == 0 && string.IsNullOrWhiteSpace(valueStr)) break;
 
-                                switch (colTypes[colIdx])
+                                if (colTypes[colIdx].StartsWith("enum:"))
                                 {
-                                    case "FixedString32Bytes":
-                                    case "FixedString64Bytes":
-                                    case "FixedString128Bytes":
-                                    case "FixedString512Bytes":
-                                    case "FixedString4096Bytes":
-                                    case "string":
-                                    case "String":
-                                        binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? string.Empty : valueStr);
-                                        break;
-                                    case "byte":
-                                    case "Byte":
-                                        binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : byte.Parse(valueStr));
-                                        break;
-                                    case "short":
-                                    case "Int16":
-                                        binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : short.Parse(valueStr));
-                                        break;
-                                    case "int":
-                                    case "Int32":
-                                        binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : int.Parse(valueStr));
-                                        break;
-                                    case "long":
-                                    case "Int64":
-                                        binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : long.Parse(valueStr));
-                                        break;
-                                    case "decimal":
-                                    case "Decimal":
-                                        binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : decimal.Parse(valueStr));
-                                        break;
-                                    case "float":
-                                    case "Single":
-                                        binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : float.Parse(valueStr));
-                                        break;
-                                    case "double":
-                                    case "Double":
-                                        binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : double.Parse(valueStr));
-                                        break;
-                                    case "bool":
-                                    case "Boolean":
-                                        binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : bool.Parse(valueStr));
-                                        break;
-                                    case "Vector2Int":
-                                    case "int2":
+                                    var assembly = System.Reflection.Assembly.GetAssembly(typeof(GoogleSheetsAPI));
+                                    var enumName = colTypes[colIdx].Substring(5);
+                                    var enumType = assembly.GetType(enumName);
+                                    if (enumType != null)
+                                    {
+                                        var enumNames = Enum.GetNames(enumType);
+                                        var enumValues = Enum.GetValues(enumType);
+                                        object enumValue = null;
+                                        for (int i = 0; i < enumNames.Length; i ++)
                                         {
-                                            var splited = valueStr.Split(',');
-                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[0]) ? default : int.Parse(splited[0].Trim()));
-                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[1]) ? default : int.Parse(splited[1].Trim()));
+                                            if (valueStr == enumNames[i])
+                                            {
+                                                enumValue = enumValues.GetValue(i);
+                                                break;
+                                            }
                                         }
-                                        break;
-                                    case "Vector3Int":
-                                    case "int3":
-                                        {
-                                            var splited = valueStr.Split(',');
-                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[0]) ? default : int.Parse(splited[0].Trim()));
-                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[1]) ? default : int.Parse(splited[1].Trim()));
-                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[2]) ? default : int.Parse(splited[2].Trim()));
-                                        }
-                                        break;
-                                    case "Vector4Int":
-                                    case "int4":
-                                        {
-                                            var splited = valueStr.Split(',');
-                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[0]) ? default : int.Parse(splited[0].Trim()));
-                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[1]) ? default : int.Parse(splited[1].Trim()));
-                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[2]) ? default : int.Parse(splited[2].Trim()));
-                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[3]) ? default : int.Parse(splited[3].Trim()));
-                                        }
-                                        break;
-                                    case "Vector2":
-                                    case "float2":
-                                        {
-                                            var splited = valueStr.Split(',');
-                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[0]) ? default : float.Parse(splited[0].Trim()));
-                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[1]) ? default : float.Parse(splited[1].Trim()));
-                                        }
-                                        break;
-                                    case "Vector3":
-                                    case "float3":
-                                        {
-                                            var splited = valueStr.Split(',');
-                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[0]) ? default : float.Parse(splited[0].Trim()));
-                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[1]) ? default : float.Parse(splited[1].Trim()));
-                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[2]) ? default : float.Parse(splited[2].Trim()));
-                                        }
-                                        break;
-                                    case "Vector4":
-                                    case "float4":
-                                        {
-                                            var splited = valueStr.Split(',');
-                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[0]) ? default : float.Parse(splited[0].Trim()));
-                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[1]) ? default : float.Parse(splited[1].Trim()));
-                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[2]) ? default : float.Parse(splited[2].Trim()));
-                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[3]) ? default : float.Parse(splited[3].Trim()));
-                                        }
-                                        break;
-                                    case "Color":
-                                        {
-                                            var splited = valueStr.Split(',');
-                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[0]) ? default : byte.Parse(splited[0].Trim()));
-                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[1]) ? default : byte.Parse(splited[1].Trim()));
-                                            binaryWriter.Write(string.IsNullOrWhiteSpace(splited[2]) ? default : byte.Parse(splited[2].Trim()));
-                                            if (splited.Length < 4)
-                                                binaryWriter.Write(byte.MaxValue);
-                                            else
-                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[3]) ? default : byte.Parse(splited[3].Trim()));
-                                        }
-                                        break;
-                                    case "ColorCode":
-                                        {
-                                            var color = new Color(1.0f, 1.0f, 1.0f, 1.0f);
-                                            UnityEngine.ColorUtility.TryParseHtmlString(valueStr, out color);
-                                            binaryWriter.Write((byte)Mathf.RoundToInt(color.r * byte.MaxValue));
-                                            binaryWriter.Write((byte)Mathf.RoundToInt(color.g * byte.MaxValue));
-                                            binaryWriter.Write((byte)Mathf.RoundToInt(color.b * byte.MaxValue));
-                                            binaryWriter.Write((byte)Mathf.RoundToInt(color.a * byte.MaxValue));
-                                        }
-                                        break;
+                                        
+                                        var underlyingType = Enum.GetUnderlyingType(enumType);
+                                        if (underlyingType == typeof(byte))
+                                            binaryWriter.Write(enumValue == null ? default : (byte)enumValue);
+                                        else if (underlyingType == typeof(short))
+                                            binaryWriter.Write(enumValue == null ? default : (short)enumValue);
+                                        else if (underlyingType == typeof(int))
+                                            binaryWriter.Write(enumValue == null ? default : (int)enumValue);
+                                        else if (underlyingType == typeof(long))
+                                            binaryWriter.Write(enumValue == null ? default : (long)enumValue);
+                                    }
+                                }
+                                else
+                                {
+                                    switch (colTypes[colIdx])
+                                    {
+                                        case "FixedString32Bytes":
+                                        case "FixedString64Bytes":
+                                        case "FixedString128Bytes":
+                                        case "FixedString512Bytes":
+                                        case "FixedString4096Bytes":
+                                        case "string":
+                                        case "String":
+                                            binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? string.Empty : valueStr);
+                                            break;
+                                        case "byte":
+                                        case "Byte":
+                                            binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : byte.Parse(valueStr));
+                                            break;
+                                        case "short":
+                                        case "Int16":
+                                            binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : short.Parse(valueStr));
+                                            break;
+                                        case "int":
+                                        case "Int32":
+                                            binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : int.Parse(valueStr));
+                                            break;
+                                        case "long":
+                                        case "Int64":
+                                            binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : long.Parse(valueStr));
+                                            break;
+                                        case "decimal":
+                                        case "Decimal":
+                                            binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : decimal.Parse(valueStr));
+                                            break;
+                                        case "float":
+                                        case "Single":
+                                            binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : float.Parse(valueStr));
+                                            break;
+                                        case "double":
+                                        case "Double":
+                                            binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : double.Parse(valueStr));
+                                            break;
+                                        case "bool":
+                                        case "Boolean":
+                                            binaryWriter.Write(string.IsNullOrWhiteSpace(valueStr) ? default : bool.Parse(valueStr));
+                                            break;
+                                        case "Vector2Int":
+                                        case "int2":
+                                            {
+                                                var splited = valueStr.Split(',');
+                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[0]) ? default : int.Parse(splited[0].Trim()));
+                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[1]) ? default : int.Parse(splited[1].Trim()));
+                                            }
+                                            break;
+                                        case "Vector3Int":
+                                        case "int3":
+                                            {
+                                                var splited = valueStr.Split(',');
+                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[0]) ? default : int.Parse(splited[0].Trim()));
+                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[1]) ? default : int.Parse(splited[1].Trim()));
+                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[2]) ? default : int.Parse(splited[2].Trim()));
+                                            }
+                                            break;
+                                        case "Vector4Int":
+                                        case "int4":
+                                            {
+                                                var splited = valueStr.Split(',');
+                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[0]) ? default : int.Parse(splited[0].Trim()));
+                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[1]) ? default : int.Parse(splited[1].Trim()));
+                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[2]) ? default : int.Parse(splited[2].Trim()));
+                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[3]) ? default : int.Parse(splited[3].Trim()));
+                                            }
+                                            break;
+                                        case "Vector2":
+                                        case "float2":
+                                            {
+                                                var splited = valueStr.Split(',');
+                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[0]) ? default : float.Parse(splited[0].Trim()));
+                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[1]) ? default : float.Parse(splited[1].Trim()));
+                                            }
+                                            break;
+                                        case "Vector3":
+                                        case "float3":
+                                            {
+                                                var splited = valueStr.Split(',');
+                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[0]) ? default : float.Parse(splited[0].Trim()));
+                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[1]) ? default : float.Parse(splited[1].Trim()));
+                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[2]) ? default : float.Parse(splited[2].Trim()));
+                                            }
+                                            break;
+                                        case "Vector4":
+                                        case "float4":
+                                            {
+                                                var splited = valueStr.Split(',');
+                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[0]) ? default : float.Parse(splited[0].Trim()));
+                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[1]) ? default : float.Parse(splited[1].Trim()));
+                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[2]) ? default : float.Parse(splited[2].Trim()));
+                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[3]) ? default : float.Parse(splited[3].Trim()));
+                                            }
+                                            break;
+                                        case "Color":
+                                            {
+                                                var splited = valueStr.Split(',');
+                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[0]) ? default : byte.Parse(splited[0].Trim()));
+                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[1]) ? default : byte.Parse(splited[1].Trim()));
+                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[2]) ? default : byte.Parse(splited[2].Trim()));
+                                                if (splited.Length < 4)
+                                                    binaryWriter.Write(byte.MaxValue);
+                                                else
+                                                    binaryWriter.Write(string.IsNullOrWhiteSpace(splited[3]) ? default : byte.Parse(splited[3].Trim()));
+                                            }
+                                            break;
+                                        case "ColorCode":
+                                            {
+                                                var color = new Color(1.0f, 1.0f, 1.0f, 1.0f);
+                                                UnityEngine.ColorUtility.TryParseHtmlString(valueStr, out color);
+                                                binaryWriter.Write((byte)Mathf.RoundToInt(color.r * byte.MaxValue));
+                                                binaryWriter.Write((byte)Mathf.RoundToInt(color.g * byte.MaxValue));
+                                                binaryWriter.Write((byte)Mathf.RoundToInt(color.b * byte.MaxValue));
+                                                binaryWriter.Write((byte)Mathf.RoundToInt(color.a * byte.MaxValue));
+                                            }
+                                            break;
+                                    }
                                 }
                             }
                         }
