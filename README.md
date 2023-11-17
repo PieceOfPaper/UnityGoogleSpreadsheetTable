@@ -41,5 +41,8 @@ https://console.cloud.google.com/apis/credentials
  - FixedString256Bytes (string256로도 입력 가능)
  - FixedString512Bytes (string512로도 입력 가능)
  - FixedString4096Bytes (string4096로도 입력 가능)
+### Enum
+ - enum:로 시작하는 타입 입력시, enum 타입을 검색하여 사용.
+ - ex) enum:UnityEngine.RenderMode
 ### Others
  - ColorCode (Hex코드로 입력, 코드는 UnityEngine.Color로 생성됨)
