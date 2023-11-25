@@ -601,25 +601,60 @@ namespace GoogleSheetsTable
                                     {
                                         var enumNames = Enum.GetNames(enumType);
                                         var enumValues = Enum.GetValues(enumType);
+                                        var underlyingType = Enum.GetUnderlyingType(enumType);
+                                        
                                         object enumValue = null;
-                                        for (int i = 0; i < enumNames.Length; i ++)
+                                        var splitValueStr = valueStr.Split(',');
+                                        for (var strIdx = 0; strIdx < splitValueStr.Length; strIdx ++)
                                         {
-                                            if (valueStr == enumNames[i])
+                                            for (int enumIdx = 0; enumIdx < enumNames.Length; enumIdx ++)
                                             {
-                                                enumValue = enumValues.GetValue(i);
-                                                break;
+                                                if (splitValueStr[strIdx].Trim() == enumNames[enumIdx])
+                                                {
+                                                    if (enumValue == null)
+                                                    {
+                                                        enumValue = enumValues.GetValue(enumIdx);
+                                                    }
+                                                    else
+                                                    {
+                                                        if (underlyingType == typeof(sbyte))
+                                                            enumValue = (sbyte)enumValue | (sbyte)enumValues.GetValue(enumIdx);
+                                                        else if (underlyingType == typeof(short))
+                                                            enumValue = (short)enumValue | (short)enumValues.GetValue(enumIdx);
+                                                        else if (underlyingType == typeof(int))
+                                                            enumValue = (int)enumValue | (int)enumValues.GetValue(enumIdx);
+                                                        else if (underlyingType == typeof(long))
+                                                            enumValue = (long)enumValue | (long)enumValues.GetValue(enumIdx);
+                                                        else if (underlyingType == typeof(byte))
+                                                            enumValue = (byte)enumValue | (byte)enumValues.GetValue(enumIdx);
+                                                        else if (underlyingType == typeof(ushort))
+                                                            enumValue = (ushort)enumValue | (ushort)enumValues.GetValue(enumIdx);
+                                                        else if (underlyingType == typeof(uint))
+                                                            enumValue = (uint)enumValue | (uint)enumValues.GetValue(enumIdx);
+                                                        else if (underlyingType == typeof(ulong))
+                                                            enumValue = (ulong)enumValue | (ulong)enumValues.GetValue(enumIdx);
+                                                    }
+                                                    break;
+                                                }
                                             }
                                         }
                                         
-                                        var underlyingType = Enum.GetUnderlyingType(enumType);
-                                        if (underlyingType == typeof(byte))
-                                            binaryWriter.Write(enumValue == null ? default : (byte)enumValue);
+                                        if (underlyingType == typeof(sbyte))
+                                            binaryWriter.Write(enumValue == null ? default : (sbyte)enumValue);
                                         else if (underlyingType == typeof(short))
                                             binaryWriter.Write(enumValue == null ? default : (short)enumValue);
                                         else if (underlyingType == typeof(int))
                                             binaryWriter.Write(enumValue == null ? default : (int)enumValue);
                                         else if (underlyingType == typeof(long))
                                             binaryWriter.Write(enumValue == null ? default : (long)enumValue);
+                                        else if (underlyingType == typeof(byte))
+                                            binaryWriter.Write(enumValue == null ? default : (byte)enumValue);
+                                        else if (underlyingType == typeof(ushort))
+                                            binaryWriter.Write(enumValue == null ? default : (ushort)enumValue);
+                                        else if (underlyingType == typeof(uint))
+                                            binaryWriter.Write(enumValue == null ? default : (uint)enumValue);
+                                        else if (underlyingType == typeof(ulong))
+                                            binaryWriter.Write(enumValue == null ? default : (ulong)enumValue);
                                     }
                                 }
                                 else
