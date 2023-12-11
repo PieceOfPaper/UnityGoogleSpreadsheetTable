@@ -533,6 +533,7 @@ namespace GoogleSheetsTable
                     strBuilder.Clear();
                     strBuilder.AppendLine("using System.Collections;");
                     strBuilder.AppendLine("using System.Collections.Generic;");
+                    strBuilder.AppendLine("using System.Linq;");
                     strBuilder.AppendLine("namespace GoogleSheetsTable");
                     strBuilder.AppendLine("{");
                     strBuilder.AppendLine("\tpublic partial class TableManager");
@@ -556,6 +557,10 @@ namespace GoogleSheetsTable
                     strBuilder.AppendLineFormat("\t\tpublic int Get{0}DataCount()", table.tableName);
                     strBuilder.AppendLine("\t\t{");
                     strBuilder.AppendLineFormat("\t\t\treturn m_Dic{0}.Count;", table.tableName);
+                    strBuilder.AppendLine("\t\t}");
+                    strBuilder.AppendLineFormat("\t\tpublic IEnumerable<{0}> GetAll{0}Data()", table.tableName);
+                    strBuilder.AppendLine("\t\t{");
+                    strBuilder.AppendLineFormat("\t\t\treturn m_Dic{0}.Values.ToArray();", table.tableName);
                     strBuilder.AppendLine("\t\t}");
                     strBuilder.AppendLine("\t}");
                     strBuilder.AppendLine("}");
