@@ -193,21 +193,59 @@ namespace GoogleSheetsTable
                 var data = tableList[i];
                 
                 EditorGUILayout.BeginHorizontal();
-                EditorGUILayout.BeginVertical();
-                data.tableName = EditorGUILayout.TextField("Table Name", data.tableName);
-                data.spreadsheetId = EditorGUILayout.TextField("Spreadsheet ID", data.spreadsheetId);
-                data.sheetName = EditorGUILayout.TextField("Sheet Name", data.sheetName);
-                data.dataRange = EditorGUILayout.TextField("Data Range", data.dataRange);
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                if (GUILayout.Button("Delete", GUILayout.Width(100f)))
+                EditorGUILayout.BeginVertical(GUILayout.Width(20f));
+                using (new EditorGUI.DisabledScope(i == 0))
                 {
+                    if (GUILayout.Button("▲"))
+                    {
+                        GUI.FocusControl(null);
+                        var temp = tableList[i - 1];
+                        tableList[i - 1] = data;
+                        tableList[i] = temp;
+                        m_IsSettingModified = true;
+                        EditorGUILayout.EndVertical();
+                        EditorGUILayout.EndHorizontal();
+                        continue;
+                    }
+                }
+                using (new EditorGUI.DisabledScope((i + 1) >= tableList.Count))
+                {
+                    if (GUILayout.Button("▼"))
+                    {
+                        GUI.FocusControl(null);
+                        var temp = tableList[i + 1];
+                        tableList[i + 1] = data;
+                        tableList[i] = temp;
+                        m_IsSettingModified = true;
+                        EditorGUILayout.EndVertical();
+                        EditorGUILayout.EndHorizontal();
+                        continue;
+                    }
+                }
+                EditorGUILayout.EndVertical();
+                EditorGUILayout.BeginVertical(GUILayout.Width(100f));
+                GUILayout.Label("Table Name");
+                GUILayout.Label("Spreadsheet ID");
+                GUILayout.Label("Sheet Name");
+                GUILayout.Label("Data Name");
+                EditorGUILayout.EndVertical();
+                EditorGUILayout.BeginVertical(GUILayout.ExpandWidth(true));
+                data.tableName = EditorGUILayout.TextField(data.tableName, GUILayout.ExpandWidth(true));
+                data.spreadsheetId = EditorGUILayout.TextField(data.spreadsheetId, GUILayout.ExpandWidth(true));
+                data.sheetName = EditorGUILayout.TextField(data.sheetName, GUILayout.ExpandWidth(true));
+                data.dataRange = EditorGUILayout.TextField(data.dataRange, GUILayout.ExpandWidth(true));
+                EditorGUILayout.EndVertical();
+                EditorGUILayout.BeginVertical(GUILayout.Width(100f));
+                if (GUILayout.Button("Delete"))
+                {
+                    GUI.FocusControl(null);
                     removeIndex = i;
                 }
                 using (new EditorGUI.DisabledScope(m_IsEnableGoogleSheetAPI == false || m_RequestGenerateTableList.Count > 0))
                 {
-                    if (GUILayout.Button("Generate", GUILayout.Width(100f)))
+                    if (GUILayout.Button("Generate"))
                     {
+                        GUI.FocusControl(null);
                         GenerateTable(data);
                     }
                 }
@@ -228,6 +266,7 @@ namespace GoogleSheetsTable
             GUILayout.FlexibleSpace();
             if (GUILayout.Button("Add", GUILayout.ExpandWidth(false)))
             {
+                GUI.FocusControl(null);
                 tableList.Add(new GoogleSheetsSetting.Table());
                 m_IsSettingModified = true;
             }
@@ -237,6 +276,7 @@ namespace GoogleSheetsTable
             {
                 if (GUILayout.Button("Generate All"))
                 {
+                    GUI.FocusControl(null);
                     GenerateTables(tableList);
                 }
             }
