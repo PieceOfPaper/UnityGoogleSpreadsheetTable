@@ -751,62 +751,62 @@ namespace GoogleSheetsTable
                                         case "int2":
                                             {
                                                 var splited = valueStr.Split(',');
-                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[0]) ? default : int.Parse(splited[0].Trim()));
-                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[1]) ? default : int.Parse(splited[1].Trim()));
+                                                binaryWriter.Write(splited.Length <= 0 || string.IsNullOrWhiteSpace(splited[0]) ? default : int.Parse(splited[0].Trim()));
+                                                binaryWriter.Write(splited.Length <= 1 && string.IsNullOrWhiteSpace(splited[1]) ? default : int.Parse(splited[1].Trim()));
                                             }
                                             break;
                                         case "Vector3Int":
                                         case "int3":
                                             {
                                                 var splited = valueStr.Split(',');
-                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[0]) ? default : int.Parse(splited[0].Trim()));
-                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[1]) ? default : int.Parse(splited[1].Trim()));
-                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[2]) ? default : int.Parse(splited[2].Trim()));
+                                                binaryWriter.Write(splited.Length <= 0 || string.IsNullOrWhiteSpace(splited[0]) ? default : int.Parse(splited[0].Trim()));
+                                                binaryWriter.Write(splited.Length <= 1 || string.IsNullOrWhiteSpace(splited[1]) ? default : int.Parse(splited[1].Trim()));
+                                                binaryWriter.Write(splited.Length <= 2 || string.IsNullOrWhiteSpace(splited[2]) ? default : int.Parse(splited[2].Trim()));
                                             }
                                             break;
                                         case "Vector4Int":
                                         case "int4":
                                             {
                                                 var splited = valueStr.Split(',');
-                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[0]) ? default : int.Parse(splited[0].Trim()));
-                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[1]) ? default : int.Parse(splited[1].Trim()));
-                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[2]) ? default : int.Parse(splited[2].Trim()));
-                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[3]) ? default : int.Parse(splited[3].Trim()));
+                                                binaryWriter.Write(splited.Length <= 0 || string.IsNullOrWhiteSpace(splited[0]) ? default : int.Parse(splited[0].Trim()));
+                                                binaryWriter.Write(splited.Length <= 1 || string.IsNullOrWhiteSpace(splited[1]) ? default : int.Parse(splited[1].Trim()));
+                                                binaryWriter.Write(splited.Length <= 2 || string.IsNullOrWhiteSpace(splited[2]) ? default : int.Parse(splited[2].Trim()));
+                                                binaryWriter.Write(splited.Length <= 3 || string.IsNullOrWhiteSpace(splited[3]) ? default : int.Parse(splited[3].Trim()));
                                             }
                                             break;
                                         case "Vector2":
                                         case "float2":
                                             {
                                                 var splited = valueStr.Split(',');
-                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[0]) ? default : float.Parse(splited[0].Trim()));
-                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[1]) ? default : float.Parse(splited[1].Trim()));
+                                                binaryWriter.Write(splited.Length <= 0 || string.IsNullOrWhiteSpace(splited[0]) ? default : float.Parse(splited[0].Trim()));
+                                                binaryWriter.Write(splited.Length <= 1 || string.IsNullOrWhiteSpace(splited[1]) ? default : float.Parse(splited[1].Trim()));
                                             }
                                             break;
                                         case "Vector3":
                                         case "float3":
                                             {
                                                 var splited = valueStr.Split(',');
-                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[0]) ? default : float.Parse(splited[0].Trim()));
-                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[1]) ? default : float.Parse(splited[1].Trim()));
-                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[2]) ? default : float.Parse(splited[2].Trim()));
+                                                binaryWriter.Write(splited.Length <= 0 || string.IsNullOrWhiteSpace(splited[0]) ? default : float.Parse(splited[0].Trim()));
+                                                binaryWriter.Write(splited.Length <= 1 || string.IsNullOrWhiteSpace(splited[1]) ? default : float.Parse(splited[1].Trim()));
+                                                binaryWriter.Write(splited.Length <= 2 || string.IsNullOrWhiteSpace(splited[2]) ? default : float.Parse(splited[2].Trim()));
                                             }
                                             break;
                                         case "Vector4":
                                         case "float4":
                                             {
                                                 var splited = valueStr.Split(',');
-                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[0]) ? default : float.Parse(splited[0].Trim()));
-                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[1]) ? default : float.Parse(splited[1].Trim()));
-                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[2]) ? default : float.Parse(splited[2].Trim()));
-                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[3]) ? default : float.Parse(splited[3].Trim()));
+                                                binaryWriter.Write(splited.Length <= 0 || string.IsNullOrWhiteSpace(splited[0]) ? default : float.Parse(splited[0].Trim()));
+                                                binaryWriter.Write(splited.Length <= 1 || string.IsNullOrWhiteSpace(splited[1]) ? default : float.Parse(splited[1].Trim()));
+                                                binaryWriter.Write(splited.Length <= 2 || string.IsNullOrWhiteSpace(splited[2]) ? default : float.Parse(splited[2].Trim()));
+                                                binaryWriter.Write(splited.Length <= 3 || string.IsNullOrWhiteSpace(splited[3]) ? default : float.Parse(splited[3].Trim()));
                                             }
                                             break;
                                         case "Color":
                                             {
                                                 var splited = valueStr.Split(',');
-                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[0]) ? default : byte.Parse(splited[0].Trim()));
-                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[1]) ? default : byte.Parse(splited[1].Trim()));
-                                                binaryWriter.Write(string.IsNullOrWhiteSpace(splited[2]) ? default : byte.Parse(splited[2].Trim()));
+                                                binaryWriter.Write(splited.Length <= 0 || string.IsNullOrWhiteSpace(splited[0]) ? default : byte.Parse(splited[0].Trim()));
+                                                binaryWriter.Write(splited.Length <= 1 || string.IsNullOrWhiteSpace(splited[1]) ? default : byte.Parse(splited[1].Trim()));
+                                                binaryWriter.Write(splited.Length <= 2 || string.IsNullOrWhiteSpace(splited[2]) ? default : byte.Parse(splited[2].Trim()));
                                                 if (splited.Length < 4)
                                                     binaryWriter.Write(byte.MaxValue);
                                                 else
