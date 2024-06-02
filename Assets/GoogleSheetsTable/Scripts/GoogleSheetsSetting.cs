@@ -13,7 +13,7 @@ namespace GoogleSheetsTable
         public string googleClientSecretsPath;
         public Table[] tableSettings;
 
-        [System.Serializable]
+        [Serializable]
         public struct Table : IEquatable<Table>
         {
             public string tableName;

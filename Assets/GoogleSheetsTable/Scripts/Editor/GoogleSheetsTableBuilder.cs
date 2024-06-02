@@ -236,6 +236,10 @@ namespace GoogleSheetsTable
                 data.dataRange = EditorGUILayout.TextField(data.dataRange, GUILayout.ExpandWidth(true));
                 EditorGUILayout.EndVertical();
                 EditorGUILayout.BeginVertical(GUILayout.Width(100f));
+                if (GUILayout.Button("Open"))
+                {
+                    Application.OpenURL($"https://docs.google.com/spreadsheets/d/{data.spreadsheetId}");
+                }
                 if (GUILayout.Button("Delete"))
                 {
                     GUI.FocusControl(null);
