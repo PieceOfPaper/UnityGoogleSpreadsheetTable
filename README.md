@@ -25,7 +25,6 @@ https://console.cloud.google.com/apis/credentials
  - Vector4
  - Vector2Int
  - Vector3Int
- - Vector4Int
  - Color
 ### Unity.Mathematics
  - int2
