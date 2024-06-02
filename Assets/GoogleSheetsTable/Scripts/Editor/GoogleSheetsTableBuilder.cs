@@ -17,6 +17,7 @@ namespace GoogleSheetsTable
 
         private const string GENERATE_CODE_TEMP_PATH = "Temp/GoogleSheetsTable/Scripts";
         private const string GENERATE_BINARY_TEMP_PATH = "Temp/GoogleSheetsTable/Binary";
+        private const string GENERATE_XML_TEMP_PATH = "Temp/GoogleSheetsTable/Xml";
 
         public GoogleSheetsSetting m_Setting;
         public Vector2 m_TablesScroll;
@@ -27,6 +28,10 @@ namespace GoogleSheetsTable
         private string m_ExportCodePath;
         private string m_ExportCodeFullPath;
         private string m_ExportCodeTempPath;
+        
+        private string m_ExportXmlPath;
+        private string m_ExportXmlFullPath;
+        private string m_ExportXmlTempPath;
         
         private string m_ExportBinaryPath;
         private string m_ExportBinaryFullPath;
@@ -41,6 +46,7 @@ namespace GoogleSheetsTable
         {
             m_ExportCodeTempPath = System.IO.Path.Combine(Application.dataPath.Replace("/Assets", ""), GENERATE_CODE_TEMP_PATH);
             m_ExportBinaryTempPath = System.IO.Path.Combine(Application.dataPath.Replace("/Assets", ""), GENERATE_BINARY_TEMP_PATH);
+            m_ExportXmlTempPath = System.IO.Path.Combine(Application.dataPath.Replace("/Assets", ""), GENERATE_XML_TEMP_PATH);
 
             var lastSettingGUID = EditorPrefs.GetString("GoogleSheetsTableBuilder_LastSettingGUID");
             var lastSettingPath = string.IsNullOrWhiteSpace(lastSettingGUID) ? string.Empty : AssetDatabase.GUIDToAssetPath(lastSettingGUID);
@@ -81,12 +87,16 @@ namespace GoogleSheetsTable
             m_IsEnableGoogleSheetAPI = GoogleSheetsAPI.Instance.IsCertificating == false && GoogleSheetsAPI.Instance.IsCertificated == true;
 
             m_ExportCodePath = EditorGUILayout.TextField("Export Code Path", m_Setting.exportCodePath);
+            m_ExportXmlPath = EditorGUILayout.TextField("Export Xml Path", m_Setting.exportXmlPath);
             m_ExportBinaryPath = EditorGUILayout.TextField("Export Binary Path", m_Setting.exportBinaryPath);
             if (m_ExportCodePath != m_Setting.exportCodePath) m_IsSettingModified = true;
+            if (m_ExportXmlPath != m_Setting.exportXmlPath) m_IsSettingModified = true;
             if (m_ExportBinaryPath != m_Setting.exportBinaryPath) m_IsSettingModified = true;
-            m_ExportCodePath = m_Setting.exportCodePath;
+            m_Setting.exportCodePath = m_ExportCodePath;
             m_ExportCodeFullPath = System.IO.Path.Combine(Application.dataPath.Replace("/Assets", ""), m_ExportCodePath);
-            m_ExportBinaryPath = m_Setting.exportBinaryPath;
+            m_Setting.exportXmlPath = m_ExportXmlPath;
+            m_ExportXmlFullPath = System.IO.Path.Combine(Application.dataPath.Replace("/Assets", ""), m_ExportXmlPath);
+            m_Setting.exportBinaryPath = m_ExportBinaryPath;
             m_ExportBinaryFullPath = System.IO.Path.Combine(Application.dataPath.Replace("/Assets", ""), m_ExportBinaryPath);
 
             EditorGUILayout.Space();
@@ -111,6 +121,7 @@ namespace GoogleSheetsTable
                     m_GeneratedTableList.Clear();
                     
                     System.IO.Directory.CreateDirectory(m_ExportCodeFullPath);
+                    System.IO.Directory.CreateDirectory(m_ExportXmlFullPath);
                     System.IO.Directory.CreateDirectory(m_ExportBinaryFullPath);
                     var tempCodeDirectoryInfo = new System.IO.DirectoryInfo(m_ExportCodeTempPath);
                     var codeFileInfos = tempCodeDirectoryInfo.GetFiles();
@@ -118,9 +129,15 @@ namespace GoogleSheetsTable
                     {
                         System.IO.File.Copy(fileInfo.FullName, System.IO.Path.Combine(m_ExportCodeFullPath, fileInfo.Name), true);
                     }
-                    var tempExportDirectoryInfo = new System.IO.DirectoryInfo(m_ExportBinaryTempPath);
-                    var exportFileInfos = tempExportDirectoryInfo.GetFiles();
-                    foreach (var fileInfo in exportFileInfos)
+                    var tempExportXmlDirectoryInfo = new System.IO.DirectoryInfo(m_ExportXmlTempPath);
+                    var exportXmlFileInfos = tempExportXmlDirectoryInfo.GetFiles();
+                    foreach (var fileInfo in exportXmlFileInfos)
+                    {
+                        System.IO.File.Copy(fileInfo.FullName, System.IO.Path.Combine(m_ExportXmlFullPath, fileInfo.Name), true);
+                    }
+                    var tempExportBinaryDirectoryInfo = new System.IO.DirectoryInfo(m_ExportBinaryTempPath);
+                    var exportBinaryFileInfos = tempExportBinaryDirectoryInfo.GetFiles();
+                    foreach (var fileInfo in exportBinaryFileInfos)
                     {
                         System.IO.File.Copy(fileInfo.FullName, System.IO.Path.Combine(m_ExportBinaryFullPath, fileInfo.Name), true);
                     }
@@ -305,14 +322,22 @@ namespace GoogleSheetsTable
             m_GeneratedTableList.Clear();
 
             System.IO.Directory.CreateDirectory(m_ExportCodeTempPath);
+            System.IO.Directory.CreateDirectory(m_ExportXmlTempPath);
             System.IO.Directory.CreateDirectory(m_ExportBinaryTempPath);
+            
             var tempCodeDirectoryInfo = new System.IO.DirectoryInfo(m_ExportCodeTempPath);
             var codeFileInfos = tempCodeDirectoryInfo.GetFiles();
             foreach (var fileInfo in codeFileInfos)
                 System.IO.File.Delete(fileInfo.FullName);
-            var tempExportDirectoryInfo = new System.IO.DirectoryInfo(m_ExportBinaryTempPath);
-            var exportFileInfos = tempExportDirectoryInfo.GetFiles();
-            foreach (var fileInfo in exportFileInfos)
+            
+            var tempExportXmlDirectoryInfo = new System.IO.DirectoryInfo(m_ExportXmlTempPath);
+            var exportXmlFileInfos = tempExportXmlDirectoryInfo.GetFiles();
+            foreach (var fileInfo in exportXmlFileInfos)
+                System.IO.File.Delete(fileInfo.FullName);
+            
+            var tempExportBinaryDirectoryInfo = new System.IO.DirectoryInfo(m_ExportBinaryTempPath);
+            var exportBinaryFileInfos = tempExportBinaryDirectoryInfo.GetFiles();
+            foreach (var fileInfo in exportBinaryFileInfos)
                 System.IO.File.Delete(fileInfo.FullName);
 
             if (tables != null)
@@ -530,7 +555,6 @@ namespace GoogleSheetsTable
                                 case "int3":
                                     strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadInt32(), binaryReader.ReadInt32(), binaryReader.ReadInt32());", colNames[colIdx], colTypes[colIdx]);
                                     break;
-                                case "Vector4Int":
                                 case "int4":
                                     strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadInt32(), binaryReader.ReadInt32(), binaryReader.ReadInt32(), binaryReader.ReadInt32());", colNames[colIdx], colTypes[colIdx]);
                                     break;
@@ -552,6 +576,109 @@ namespace GoogleSheetsTable
                                     break;
                                 default:
                                     strBuilder.AppendLineFormat("\t\t\t{0} = default;", colNames[colIdx]);
+                                    break;
+                            }
+                        }
+                    }
+                    strBuilder.AppendLine("\t\t}");
+                    strBuilder.AppendLineFormat("\t\tpublic {0}(System.Xml.XmlReader xmlReader)", table.tableName);
+                    strBuilder.AppendLine("\t\t{");
+                    for (var colIdx = 0; colIdx < colCnt; colIdx ++)
+                    {
+                        if (string.IsNullOrWhiteSpace(colNames[colIdx])) continue;
+                        if (string.IsNullOrWhiteSpace(colTypes[colIdx])) continue;
+
+                        strBuilder.AppendLineFormat("\t\t\t{0} = default;", colNames[colIdx]);
+                        if (colTypes[colIdx].StartsWith("enum:"))
+                        {
+                            strBuilder.AppendLineFormat("\t\t\tEnum.TryParse(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                        }
+                        else
+                        {
+                            switch (colTypes[colIdx])
+                            {
+                                case "FixedString32Bytes":
+                                case "FixedString64Bytes":
+                                case "FixedString128Bytes":
+                                case "FixedString256Bytes":
+                                case "FixedString512Bytes":
+                                case "FixedString4096Bytes":
+                                    strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(xmlReader.GetAttribute(\"{0}\") == null ? string.Empty : xmlReader.GetAttribute(\"{0}\"));", colNames[colIdx], colTypes[colIdx]);
+                                    break;
+                                case "string":
+                                case "String":
+                                    strBuilder.AppendLineFormat("\t\t\t{0} = xmlReader.GetAttribute(\"{0}\");", colNames[colIdx]);
+                                    break;
+                                case "byte":
+                                case "Byte":
+                                    strBuilder.AppendLineFormat("\t\t\tbyte.TryParse(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                    break;
+                                case "short":
+                                case "Int16":
+                                    strBuilder.AppendLineFormat("\t\t\tshort.TryParse(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                    break;
+                                case "int":
+                                case "Int32":
+                                    strBuilder.AppendLineFormat("\t\t\tint.TryParse(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                    break;
+                                case "long":
+                                case "Int64":
+                                    strBuilder.AppendLineFormat("\t\t\tlong.TryParse(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                    break;
+                                case "decimal":
+                                case "Decimal":
+                                    strBuilder.AppendLineFormat("\t\t\tdecimal.TryParse(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                    break;
+                                case "float":
+                                case "Single":
+                                    strBuilder.AppendLineFormat("\t\t\tfloat.TryParse(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                    break;
+                                case "double":
+                                case "Double":
+                                    strBuilder.AppendLineFormat("\t\t\tdouble.TryParse(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                    break;
+                                case "bool":
+                                case "Boolean":
+                                    strBuilder.AppendLineFormat("\t\t\tbool.TryParse(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                    break;
+                                case "Vector2Int":
+                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseVector2Int(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                    break;
+                                case "int2":
+                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseInt2(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                    break;
+                                case "Vector3Int":
+                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseVector3Int(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                    break;
+                                case "int3":
+                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseInt3(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                    break;
+                                case "int4":
+                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseInt4(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                    break;
+                                case "Vector2":
+                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseVector2(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                    break;
+                                case "float2":
+                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseFloat2(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                    break;
+                                case "Vector3":
+                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseVector3(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                    break;
+                                case "float3":
+                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseFloat3(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                    break;
+                                case "Vector4":
+                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseVector4(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                    break;
+                                case "float4":
+                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseFloat4(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                    break;
+                                case "Color":
+                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseColor(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                    break;
+                                case "ColorCode":
+                                    strBuilder.AppendLineFormat("\t\t\tColorUtility.TryParseHtmlString(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
                                     break;
                             }
                         }
@@ -593,6 +720,17 @@ namespace GoogleSheetsTable
                     strBuilder.AppendLineFormat("\t\t\t\tm_Dic{0}.Add(data.{1}, data);", table.tableName, colNames[0]);
                     strBuilder.AppendLine("\t\t\t}");
                     strBuilder.AppendLine("\t\t}");
+                    strBuilder.AppendLineFormat("\t\tpublic void LoadTable_{0}(System.Xml.XmlReader xmlReader)", table.tableName);
+                    strBuilder.AppendLine("\t\t{");
+                    strBuilder.AppendLineFormat("\t\t\tm_Dic{0}.Clear();", table.tableName);
+                    strBuilder.AppendLine("\t\t\twhile (xmlReader.Read())");
+                    strBuilder.AppendLine("\t\t\t{");
+                    strBuilder.AppendLine("\t\t\t\tif (xmlReader.NodeType != System.Xml.XmlNodeType.Element) continue;");
+                    strBuilder.AppendLineFormat("\t\t\t\tif (xmlReader.Name != \"{0}\") continue;", table.tableName);
+                    strBuilder.AppendLineFormat("\t\t\t\tvar data = new {0}(xmlReader);", table.tableName);
+                    strBuilder.AppendLineFormat("\t\t\t\tm_Dic{0}.Add(data.{1}, data);", table.tableName, colNames[0]);
+                    strBuilder.AppendLine("\t\t\t}");
+                    strBuilder.AppendLine("\t\t}");
                     strBuilder.AppendLineFormat("\t\tpublic {0} Get{0}By{1}({2} {3})", table.tableName, colNames[0], colTypes[0], colNames[0].ToLower());
                     strBuilder.AppendLine("\t\t{");
                     strBuilder.AppendLineFormat("\t\t\tif (m_Dic{0}.ContainsKey({1}) == false) return default;", table.tableName, colNames[0].ToLower());
@@ -623,7 +761,52 @@ namespace GoogleSheetsTable
                         return;
                     }
 
+                    
+                    // Generate Xml
+                    try
+                    {
+                        var fileStream = new System.IO.FileStream(System.IO.Path.Combine(m_ExportXmlTempPath, $"{table.tableName.ToLower()}.xml"), System.IO.FileMode.Create);
+                        var xmlWriterSetting = new System.Xml.XmlWriterSettings();
+                        xmlWriterSetting.Encoding = new System.Text.UTF8Encoding(false);
+                        xmlWriterSetting.Indent = true;
+                        xmlWriterSetting.NewLineChars = "\n";
+                        var xmlWriter = System.Xml.XmlWriter.Create(fileStream, xmlWriterSetting);
+                        xmlWriter.WriteStartDocument();
+                        xmlWriter.WriteStartElement($"{table.tableName}Table");
+                        for (var rowIdx = 2; rowIdx < values.Count; rowIdx ++)
+                        {
+                            xmlWriter.WriteStartElement($"{table.tableName}");
+                            var row = values[rowIdx];
+                            for (var colIdx = 0; colIdx < row.Count; colIdx ++)
+                            {
+                                if (string.IsNullOrWhiteSpace(colNames[colIdx])) continue;
+                                if (string.IsNullOrWhiteSpace(colTypes[colIdx])) continue;
 
+                                var value = row[colIdx];
+                                var valueStr = value == null ? string.Empty : value.ToString();
+                                if (colIdx == 0 && string.IsNullOrWhiteSpace(valueStr)) break;
+
+                                xmlWriter.WriteAttributeString(colNames[colIdx], valueStr);
+                            }
+                            xmlWriter.WriteEndElement();
+                        }
+                        xmlWriter.WriteEndElement();
+                        xmlWriter.WriteEndDocument();
+                        xmlWriter.Close();
+                        fileStream.Close();
+                    }
+                    catch (Exception e)
+                    {
+                        lock (m_GeneratedTableList)
+                        {
+                            m_GeneratedTableList.Add(table);
+                        }
+                        Debug.LogError($"Table Generate Error - {table.tableName} Xml 저장 실패\n{e}");
+                        return;
+                    }
+
+                    
+                    // Generate Binary
                     try
                     {
                         var fileStream = new System.IO.FileStream(System.IO.Path.Combine(m_ExportBinaryTempPath, $"{table.tableName.ToLower()}.bytes"), System.IO.FileMode.Create);
@@ -768,7 +951,6 @@ namespace GoogleSheetsTable
                                                 binaryWriter.Write(splited.Length <= 2 || string.IsNullOrWhiteSpace(splited[2]) ? default : int.Parse(splited[2].Trim()));
                                             }
                                             break;
-                                        case "Vector4Int":
                                         case "int4":
                                             {
                                                 var splited = valueStr.Split(',');
