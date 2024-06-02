@@ -430,6 +430,7 @@ namespace GoogleSheetsTable
                         {
                             var value = row[colIdx];
                             var valueStr = value == null ? string.Empty : value.ToString().Trim();
+                            valueStr = System.Text.RegularExpressions.Regex.Replace(valueStr, @"[\x00-\x08\x0B\x0C\x0E-\x1F]", "");
                             switch (rowIdx)
                             {
                                 case 0:
@@ -1068,6 +1069,7 @@ namespace GoogleSheetsTable
                         {
                             var value = row[colIdx];
                             var valueStr = value == null ? string.Empty : value.ToString().Trim();
+                            valueStr = System.Text.RegularExpressions.Regex.Replace(valueStr, @"[\x00-\x08\x0B\x0C\x0E-\x1F]", "");
                             switch (rowIdx)
                             {
                                 case 0:
@@ -1155,6 +1157,7 @@ namespace GoogleSheetsTable
 
                                 var value = row[colIdx];
                                 var valueStr = value == null ? string.Empty : value.ToString();
+                                valueStr = System.Text.RegularExpressions.Regex.Replace(valueStr, @"[\x00-\x08\x0B\x0C\x0E-\x1F]", "");
                                 if (colIdx == 0 && string.IsNullOrWhiteSpace(valueStr)) break;
 
                                 xmlWriter.WriteAttributeString(colNames[colIdx], valueStr);
