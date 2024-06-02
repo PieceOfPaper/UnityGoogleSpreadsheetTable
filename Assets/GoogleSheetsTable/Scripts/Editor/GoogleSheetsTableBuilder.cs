@@ -9,7 +9,7 @@ namespace GoogleSheetsTable
 {
     public class GoogleSheetsTableBuilder : EditorWindow
     {
-        [UnityEditor.MenuItem("Tools/Google Sheets Table/Open Builder")]
+        [MenuItem("Tools/Google Sheets Table/Open Builder")]
         private static void OpenWindow()
         {
             var window = EditorWindow.GetWindow<GoogleSheetsTableBuilder>();
@@ -22,6 +22,8 @@ namespace GoogleSheetsTable
         public Vector2 m_TablesScroll;
         
         private bool m_IsEnableGoogleSheetAPI;
+        private int m_GoogleSheetAPIRetryCount;
+        
         private bool m_IsSettingModified;
 
         private string m_ExportCodePath;
@@ -79,7 +81,19 @@ namespace GoogleSheetsTable
                 EditorGUILayout.HelpBox("Need Setting", MessageType.Error);
                 return;
             }
-            
+
+            if (GoogleSheetsAPI.Instance.IsCertificating == false && GoogleSheetsAPI.Instance.IsCertificated == false &&
+                string.IsNullOrWhiteSpace(m_Setting.googleClientSecretsPath) == false &&
+                m_GoogleSheetAPIRetryCount < 3)
+            {
+                Certificate();
+                m_GoogleSheetAPIRetryCount ++;
+            }
+            else if (GoogleSheetsAPI.Instance.IsCertificated == true)
+            {
+                m_GoogleSheetAPIRetryCount = 0;
+            }
+
             m_IsEnableGoogleSheetAPI = GoogleSheetsAPI.Instance.IsCertificating == false && GoogleSheetsAPI.Instance.IsCertificated == true;
 
             m_ExportCodePath = EditorGUILayout.TextField("Export Code Path", m_Setting.exportCodePath);
@@ -171,16 +185,7 @@ namespace GoogleSheetsTable
             {
                 if (GUILayout.Button("Certificate", GUILayout.ExpandWidth(false)))
                 {
-                    if (m_Setting.googleClientSecretsPath.StartsWith("Assets/"))
-                    {
-                        var textAsset = AssetDatabase.LoadAssetAtPath<TextAsset>(m_Setting.googleClientSecretsPath);
-                        GoogleSheetsAPI.Instance.Certificate(textAsset.text);   
-                    }
-                    else
-                    {
-                        var text = System.IO.File.ReadAllText(m_Setting.googleClientSecretsPath);
-                        GoogleSheetsAPI.Instance.Certificate(text);   
-                    }
+                    Certificate();
                 }
             }
             EditorGUILayout.EndHorizontal();
@@ -245,12 +250,19 @@ namespace GoogleSheetsTable
                 EditorGUILayout.BeginVertical(GUILayout.Width(100f));
                 if (GUILayout.Button("Open"))
                 {
-                    Application.OpenURL($"https://docs.google.com/spreadsheets/d/{data.spreadsheetId}");
+                    if (m_IsEnableGoogleSheetAPI == true)
+                        GoogleSheetsAPI.Instance.OpenTable(data.spreadsheetId, data.sheetName);
+                    else
+                        Application.OpenURL($"https://docs.google.com/spreadsheets/d/{data.spreadsheetId}");
                 }
                 if (GUILayout.Button("Delete"))
                 {
                     GUI.FocusControl(null);
-                    removeIndex = i;
+                    var result = EditorUtility.DisplayDialog("Google Sheets Table Builer", $"Are you sure you want to delete this table?\n\nTable Name: {data.tableName}", "Delete", "Cancel");
+                    if (result == true)
+                    {
+                        removeIndex = i;
+                    }
                 }
                 using (new EditorGUI.DisabledScope(m_IsEnableGoogleSheetAPI == false || m_RequestGenerateTableCodeList.Count > 0))
                 {
@@ -291,29 +303,23 @@ namespace GoogleSheetsTable
             }
             EditorGUILayout.EndHorizontal();
 
-            using (new EditorGUI.DisabledScope(m_IsEnableGoogleSheetAPI == false || m_RequestGenerateTableCodeList.Count > 0))
+            using (new EditorGUILayout.HorizontalScope())
             {
-                if (GUILayout.Button("Generate All Code"))
+                using (new EditorGUI.DisabledScope(m_IsEnableGoogleSheetAPI == false || m_RequestGenerateTableCodeList.Count > 0))
                 {
-                    GUI.FocusControl(null);
-                    GenerateTables_Code(tableList);
+                    if (GUILayout.Button("Generate All Code"))
+                    {
+                        GUI.FocusControl(null);
+                        GenerateTables_Code(tableList);
+                    }
                 }
-            }
-            using (new EditorGUI.DisabledScope(m_IsEnableGoogleSheetAPI == false || m_RequestGenerateTableXmlList.Count > 0))
-            {
-                if (GUILayout.Button("Generate All Xml"))
+                using (new EditorGUI.DisabledScope(m_IsEnableGoogleSheetAPI == false || m_RequestGenerateTableXmlList.Count > 0))
                 {
-                    GUI.FocusControl(null);
-                    GenerateTables_Xml(tableList);
-                }
-            }
-            using (new EditorGUI.DisabledScope(m_IsEnableGoogleSheetAPI == false || m_RequestGenerateTableCodeList.Count > 0 || m_RequestGenerateTableXmlList.Count > 0))
-            {
-                if (GUILayout.Button("Generate All"))
-                {
-                    GUI.FocusControl(null);
-                    GenerateTables_Code(tableList);
-                    GenerateTables_Xml(tableList);
+                    if (GUILayout.Button("Generate All Xml"))
+                    {
+                        GUI.FocusControl(null);
+                        GenerateTables_Xml(tableList);
+                    }
                 }
             }
 
@@ -328,7 +334,23 @@ namespace GoogleSheetsTable
             m_Setting.tableSettings = tableList.ToArray();
         }
 
-        
+
+        private void Certificate()
+        {
+            if (m_Setting == null)
+                return;
+            
+            if (m_Setting.googleClientSecretsPath.StartsWith("Assets/"))
+            {
+                var textAsset = AssetDatabase.LoadAssetAtPath<TextAsset>(m_Setting.googleClientSecretsPath);
+                GoogleSheetsAPI.Instance.Certificate(textAsset.text);   
+            }
+            else
+            {
+                var text = System.IO.File.ReadAllText(m_Setting.googleClientSecretsPath);
+                GoogleSheetsAPI.Instance.Certificate(text);   
+            }
+        }
 
         private void GenerateTable_Code(GoogleSheetsSetting.Table table) => GenerateTables_Code(new [] { table });
         

@@ -1,14 +1,12 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Json;
 using Google.Apis.Services;
 using Google.Apis.Sheets.v4;
 using Google.Apis.Util.Store;
-using UnityEditor.VersionControl;
-using UnityEngine;
 
 public class GoogleSheetsAPI
 {
@@ -56,8 +54,8 @@ public class GoogleSheetsAPI
 
         m_ClientSecrets = clientSecrets;
         m_Credential = null;
-        m_CompanyName = Application.companyName;
-        m_ProductName = Application.productName;
+        m_CompanyName = UnityEngine.Application.companyName;
+        m_ProductName = UnityEngine.Application.productName;
         if (m_ClientSecrets != null)
         {
             m_IsCertificating = true;
@@ -87,6 +85,7 @@ public class GoogleSheetsAPI
         
         m_IsCertificating = false;
         m_IsCertificated = true;
+        UnityEngine.Debug.Log("[GoogleSheetsAPI] Certificate Success!");
     }
 
     public void RequestTable(string spreadsheetId, string range, System.Action<IList<IList<object>>> callback)
@@ -109,9 +108,46 @@ public class GoogleSheetsAPI
             catch (Exception e)
             {
                 result = null;
-                Debug.LogError(e);
+                UnityEngine.Debug.LogError(e);
             }
             callback?.Invoke(result);
+        });
+    }
+
+    public void OpenTable(string spreadsheetId, string sheetName, Action callback = null)
+    {
+        var task = System.Threading.Tasks.Task.Run(() =>
+        {
+            try
+            {
+                var service = new SheetsService(new BaseClientService.Initializer()
+                {
+                    HttpClientInitializer = m_Credential,
+                    ApplicationName = m_ProductName,
+                });
+        
+                var spreadsheet = service.Spreadsheets.Get(spreadsheetId).Execute();
+                foreach (var sheet in spreadsheet.Sheets)
+                {
+                    if (sheet.Properties.Title == sheetName)
+                    {
+                        string sheetId = sheet.Properties.SheetId.ToString();
+                        Process.Start(new ProcessStartInfo
+                        {
+                            FileName = $"https://docs.google.com/spreadsheets/d/{spreadsheetId}/edit#gid={sheetId}",
+                            UseShellExecute = true
+                        });
+                        
+                        callback?.Invoke();
+                        return;
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                UnityEngine.Debug.LogError(e);
+            }
+            callback?.Invoke();
         });
     }
 }
