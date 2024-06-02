@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
@@ -92,15 +93,25 @@ public class GoogleSheetsAPI
     {
         var task = System.Threading.Tasks.Task.Run(() =>
         {
-            var service = new SheetsService(new BaseClientService.Initializer()
+            IList<IList<object>> result = null;
+            try
             {
-                HttpClientInitializer = m_Credential,
-                ApplicationName = m_ProductName,
-            });
+                var service = new SheetsService(new BaseClientService.Initializer()
+                {
+                    HttpClientInitializer = m_Credential,
+                    ApplicationName = m_ProductName,
+                });
         
-            var request = service.Spreadsheets.Values.Get(spreadsheetId, range);
-            var response = request.Execute();
-            callback?.Invoke(response.Values);
+                var request = service.Spreadsheets.Values.Get(spreadsheetId, range);
+                var response = request.Execute();
+                result = response.Values;
+            }
+            catch (Exception e)
+            {
+                result = null;
+                Debug.LogError(e);
+            }
+            callback?.Invoke(result);
         });
     }
 }

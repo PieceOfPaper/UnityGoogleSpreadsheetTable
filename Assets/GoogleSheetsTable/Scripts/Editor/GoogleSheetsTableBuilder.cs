@@ -132,7 +132,10 @@ namespace GoogleSheetsTable
                 }
                 else
                 {
-                    EditorUtility.DisplayProgressBar("Google Sheets Table Builder", $"Generating Table ...", (float)(m_GeneratedTableCodeList.Count + m_GeneratedTableXmlList.Count) / (m_RequestGenerateTableCodeList.Count + m_RequestGenerateTableXmlList.Count));
+                    var generatingTableName_Code = m_RequestGenerateTableCodeList.Count > 0 && m_GeneratedTableCodeList.Count < m_RequestGenerateTableCodeList.Count ? m_RequestGenerateTableCodeList[m_GeneratedTableCodeList.Count].tableName : string.Empty;
+                    var generatingTableName_Xml = m_RequestGenerateTableXmlList.Count > 0 && m_GeneratedTableXmlList.Count < m_RequestGenerateTableXmlList.Count ? m_RequestGenerateTableXmlList[m_GeneratedTableXmlList.Count].tableName : string.Empty;
+                    var generatingTableName = string.IsNullOrWhiteSpace(generatingTableName_Code) == false ? generatingTableName_Code : generatingTableName_Xml;
+                    EditorUtility.DisplayProgressBar("Google Sheets Table Builder", $"Generating Table ... ({generatingTableName})", (float)(m_GeneratedTableCodeList.Count + m_GeneratedTableXmlList.Count) / (m_RequestGenerateTableCodeList.Count + m_RequestGenerateTableXmlList.Count));
                 }
             }
             
@@ -301,6 +304,15 @@ namespace GoogleSheetsTable
                 if (GUILayout.Button("Generate All Xml"))
                 {
                     GUI.FocusControl(null);
+                    GenerateTables_Xml(tableList);
+                }
+            }
+            using (new EditorGUI.DisabledScope(m_IsEnableGoogleSheetAPI == false || m_RequestGenerateTableCodeList.Count > 0 || m_RequestGenerateTableXmlList.Count > 0))
+            {
+                if (GUILayout.Button("Generate All"))
+                {
+                    GUI.FocusControl(null);
+                    GenerateTables_Code(tableList);
                     GenerateTables_Xml(tableList);
                 }
             }
