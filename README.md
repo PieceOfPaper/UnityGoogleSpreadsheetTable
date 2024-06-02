@@ -43,5 +43,9 @@ https://console.cloud.google.com/apis/credentials
 ### Enum
  - enum:로 시작하는 타입 입력시, enum 타입을 검색하여 사용.
  - ex) enum:UnityEngine.RenderMode
+### Array
+ - array:로 시작하는 타입 입력시, 배열로 사용.
+ - 사용 가능한 자료형: byte, short, int, long, decimal, float, double
+ - ex) array:int
 ### Others
  - ColorCode (Hex코드로 입력, 코드는 UnityEngine.Color로 생성됨)
