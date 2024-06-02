@@ -44,6 +44,132 @@ namespace GoogleSheetsTable
             output = m_CachedEnumValues[type][str];
             return true;
         }
+        
+        public static bool TryParseArrayByte(string str, out byte[] output)
+        {
+            output = default;
+            if (string.IsNullOrWhiteSpace(str))
+                return false;
+            
+            var split = str.Split(',');
+            output = new byte[split.Length];
+            byte temp = 0;
+            for (int i = 0; i < split.Length; i ++)
+            {
+                temp = 0;
+                byte.TryParse(split[i].Trim(), out temp);
+                output[i] = temp;
+            }
+            return true;
+        }
+        
+        public static bool TryParseArrayShort(string str, out short[] output)
+        {
+            output = default;
+            if (string.IsNullOrWhiteSpace(str))
+                return false;
+            
+            var split = str.Split(',');
+            output = new short[split.Length];
+            short temp = 0;
+            for (int i = 0; i < split.Length; i ++)
+            {
+                temp = 0;
+                short.TryParse(split[i].Trim(), out temp);
+                output[i] = temp;
+            }
+            return true;
+        }
+        
+        public static bool TryParseArrayInt(string str, out int[] output)
+        {
+            output = default;
+            if (string.IsNullOrWhiteSpace(str))
+                return false;
+            
+            var split = str.Split(',');
+            output = new int[split.Length];
+            int temp = 0;
+            for (int i = 0; i < split.Length; i ++)
+            {
+                temp = 0;
+                int.TryParse(split[i].Trim(), out temp);
+                output[i] = temp;
+            }
+            return true;
+        }
+
+        public static bool TryParseArrayLong(string str, out long[] output)
+        {
+            output = default;
+            if (string.IsNullOrWhiteSpace(str))
+                return false;
+            
+            var split = str.Split(',');
+            output = new long[split.Length];
+            long temp = 0;
+            for (int i = 0; i < split.Length; i ++)
+            {
+                temp = 0;
+                long.TryParse(split[i].Trim(), out temp);
+                output[i] = temp;
+            }
+            return true;
+        }
+        
+        public static bool TryParseArrayDecimal(string str, out decimal[] output)
+        {
+            output = default;
+            if (string.IsNullOrWhiteSpace(str))
+                return false;
+            
+            var split = str.Split(',');
+            output = new decimal[split.Length];
+            decimal temp = 0;
+            for (int i = 0; i < split.Length; i ++)
+            {
+                temp = 0;
+                decimal.TryParse(split[i].Trim(), out temp);
+                output[i] = temp;
+            }
+            return true;
+        }
+        
+        public static bool TryParseArrayFloat(string str, out float[] output)
+        {
+            output = default;
+            if (string.IsNullOrWhiteSpace(str))
+                return false;
+            
+            var split = str.Split(',');
+            output = new float[split.Length];
+            float temp = 0;
+            for (int i = 0; i < split.Length; i ++)
+            {
+                temp = 0;
+                float.TryParse(split[i].Trim(), out temp);
+                output[i] = temp;
+            }
+            return true;
+        }
+        
+        public static bool TryParseArrayDouble(string str, out double[] output)
+        {
+            output = default;
+            if (string.IsNullOrWhiteSpace(str))
+                return false;
+            
+            var split = str.Split(',');
+            output = new double[split.Length];
+            double temp = 0;
+            for (int i = 0; i < split.Length; i ++)
+            {
+                temp = 0;
+                double.TryParse(split[i].Trim(), out temp);
+                output[i] = temp;
+            }
+            return true;
+        }
 
         public static bool TryParseInt2(string str, out int2 output)
         {

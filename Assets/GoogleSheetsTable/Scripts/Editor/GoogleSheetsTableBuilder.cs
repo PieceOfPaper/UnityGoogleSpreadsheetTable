@@ -511,6 +511,10 @@ namespace GoogleSheetsTable
                         {
                             colType = colTypes[colIdx].Substring(5);
                         }
+                        else if (colTypes[colIdx].StartsWith("array:"))
+                        {
+                            colType = colTypes[colIdx].Substring(6) + "[]";
+                        }
                         else
                         {
                             switch (colType)
@@ -533,7 +537,46 @@ namespace GoogleSheetsTable
                         strBuilder.AppendLineFormat("\t\t\t{0} = default;", colNames[colIdx]);
                         if (colTypes[colIdx].StartsWith("enum:"))
                         {
-                            strBuilder.AppendLineFormat("\t\t\tEnum.TryParse(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                            strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseEnum(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                        }
+                        else if (colTypes[colIdx].StartsWith("array:"))
+                        {
+                            var arrayTypeName = colTypes[colIdx].Substring(6);
+                            switch (arrayTypeName)
+                            {
+                                case "byte":
+                                case "Byte":
+                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseArrayByte(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                    break;
+                                case "short":
+                                case "Int16":
+                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseArrayByte(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                    break;
+                                case "int":
+                                case "Int32":
+                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseArrayInt(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                    break;
+                                case "long":
+                                case "Int64":
+                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseArrayLong(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                    break;
+                                case "decimal":
+                                case "Decimal":
+                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseArrayDecimal(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                    break;
+                                case "float":
+                                case "Single":
+                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseArrayFloat(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                    break;
+                                case "double":
+                                case "Double":
+                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseArrayDouble(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                    break;
+                                case "bool":
+                                case "Boolean":
+                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseArrayBool(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                    break;
+                            }
                         }
                         else
                         {
@@ -651,6 +694,50 @@ namespace GoogleSheetsTable
                                     strBuilder.AppendLineFormat("\t\t\t{0} = ({1})binaryReader.ReadInt64();", colNames[colIdx], enumName);
                             }
                         }
+                        else if (colTypes[colIdx].StartsWith("array:"))
+                        {
+                            var arrayTypeName = colTypes[colIdx].Substring(6);
+                            strBuilder.AppendLineFormat("\t\t\t{0} = new {1}[binaryReader.ReadInt32()];", colNames[colIdx], arrayTypeName);
+                            strBuilder.AppendLineFormat("\t\t\tfor (var i = 0; i < {0}.Length; i ++)", colNames[colIdx]);
+                            switch (arrayTypeName)
+                            {
+                                case "byte":
+                                case "Byte":
+                                    strBuilder.AppendLineFormat("\t\t\t\t{0}[i] = binaryReader.ReadByte();", colNames[colIdx]);
+                                    break;
+                                case "short":
+                                case "Int16":
+                                    strBuilder.AppendLineFormat("\t\t\t\t{0}[i] = binaryReader.ReadInt16();", colNames[colIdx]);
+                                    break;
+                                case "int":
+                                case "Int32":
+                                    strBuilder.AppendLineFormat("\t\t\t\t{0}[i] = binaryReader.ReadInt32();", colNames[colIdx]);
+                                    break;
+                                case "long":
+                                case "Int64":
+                                    strBuilder.AppendLineFormat("\t\t\t\t{0}[i] = binaryReader.ReadInt64();", colNames[colIdx]);
+                                    break;
+                                case "decimal":
+                                case "Decimal":
+                                    strBuilder.AppendLineFormat("\t\t\t\t{0}[i] = binaryReader.ReadDecimal();", colNames[colIdx]);
+                                    break;
+                                case "float":
+                                case "Single":
+                                    strBuilder.AppendLineFormat("\t\t\t\t{0}[i] = binaryReader.ReadSingle();", colNames[colIdx]);
+                                    break;
+                                case "double":
+                                case "Double":
+                                    strBuilder.AppendLineFormat("\t\t\t\t{0}[i] = binaryReader.ReadDouble();", colNames[colIdx]);
+                                    break;
+                                case "bool":
+                                case "Boolean":
+                                    strBuilder.AppendLineFormat("\t\t\t\t{0}[i] = binaryReader.ReadBoolean();", colNames[colIdx]);
+                                    break;
+                                default:
+                                    strBuilder.AppendLineFormat("\t\t\t\t{0}[i] = default;", colNames[colIdx]);
+                                    break;
+                            }
+                        }
                         else
                         {
                             switch (colTypes[colIdx])
@@ -751,6 +838,11 @@ namespace GoogleSheetsTable
                                 strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write(({1}){0});", colNames[colIdx], underlyingType.Name);
                             }
                         }
+                        else if (colTypes[colIdx].StartsWith("array:"))
+                        {
+                            strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write({0} == null ? 0 : {0}.Length);", colNames[colIdx]);
+                            strBuilder.AppendLineFormat("\t\t\tif ({0} != null) for (var i = 0; i < {0}.Length; i ++) binaryWriter.Write({0}[i]);", colNames[colIdx]);
+                        }
                         else
                         {
                             switch (colTypes[colIdx])
@@ -808,10 +900,10 @@ namespace GoogleSheetsTable
                                     break;
                                 case "Color":
                                 case "ColorCode":
-                                    strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write({0}.r);", colNames[colIdx]);
-                                    strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write({0}.g);", colNames[colIdx]);
-                                    strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write({0}.b);", colNames[colIdx]);
-                                    strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write({0}.a);", colNames[colIdx]);
+                                    strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write((byte)({0}.r * byte.MaxValue));", colNames[colIdx]);
+                                    strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write((byte)({0}.g * byte.MaxValue));", colNames[colIdx]);
+                                    strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write((byte)({0}.b * byte.MaxValue));", colNames[colIdx]);
+                                    strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write((byte)({0}.a * byte.MaxValue));", colNames[colIdx]);
                                     break;
                             }
                         }
