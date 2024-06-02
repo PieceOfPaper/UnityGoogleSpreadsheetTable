@@ -122,34 +122,38 @@ namespace GoogleSheetsTable
             {
                 if (m_RequestGenerateTableCodeList.Count <= m_GeneratedTableCodeList.Count && m_RequestGenerateTableXmlList.Count <= m_GeneratedTableXmlList.Count)
                 {
-                    EditorUtility.ClearProgressBar();
-                    m_RequestGenerateTableCodeList.Clear();
-                    m_RequestGenerateTableXmlList.Clear();
-                    m_GeneratedTableCodeList.Clear();
-                    m_GeneratedTableXmlList.Clear();
+                    if (m_RequestGenerateTableCodeList.Count > 0)
+                    {
+                        m_RequestGenerateTableCodeList.Clear();
+                        m_GeneratedTableCodeList.Clear();
+                        System.IO.Directory.CreateDirectory(m_ExportCodeFullPath);
+                        var tempCodeDirectoryInfo = new System.IO.DirectoryInfo(m_ExportCodeTempPath);
+                        var codeFileInfos = tempCodeDirectoryInfo.GetFiles();
+                        foreach (var fileInfo in codeFileInfos)
+                        {
+                            System.IO.File.Copy(fileInfo.FullName, System.IO.Path.Combine(m_ExportCodeFullPath, fileInfo.Name), true);
+                        }
+                    }
+
+                    if (m_RequestGenerateTableXmlList.Count > 0)
+                    {
+                        m_RequestGenerateTableXmlList.Clear();
+                        m_GeneratedTableXmlList.Clear();
+                        System.IO.Directory.CreateDirectory(m_ExportXmlFullPath);
+                        var tempExportXmlDirectoryInfo = new System.IO.DirectoryInfo(m_ExportXmlTempPath);
+                        var exportXmlFileInfos = tempExportXmlDirectoryInfo.GetFiles();
+                        foreach (var fileInfo in exportXmlFileInfos)
+                        {
+                            System.IO.File.Copy(fileInfo.FullName, System.IO.Path.Combine(m_ExportXmlFullPath, fileInfo.Name), true);
+                        }
+                    }
                     
-                    System.IO.Directory.CreateDirectory(m_ExportCodeFullPath);
-                    System.IO.Directory.CreateDirectory(m_ExportXmlFullPath);
-                    var tempCodeDirectoryInfo = new System.IO.DirectoryInfo(m_ExportCodeTempPath);
-                    var codeFileInfos = tempCodeDirectoryInfo.GetFiles();
-                    foreach (var fileInfo in codeFileInfos)
-                    {
-                        System.IO.File.Copy(fileInfo.FullName, System.IO.Path.Combine(m_ExportCodeFullPath, fileInfo.Name), true);
-                    }
-                    var tempExportXmlDirectoryInfo = new System.IO.DirectoryInfo(m_ExportXmlTempPath);
-                    var exportXmlFileInfos = tempExportXmlDirectoryInfo.GetFiles();
-                    foreach (var fileInfo in exportXmlFileInfos)
-                    {
-                        System.IO.File.Copy(fileInfo.FullName, System.IO.Path.Combine(m_ExportXmlFullPath, fileInfo.Name), true);
-                    }
+                    EditorUtility.ClearProgressBar();
                     AssetDatabase.Refresh();
                 }
                 else
                 {
-                    var generatingTableName_Code = m_RequestGenerateTableCodeList.Count > 0 && m_GeneratedTableCodeList.Count < m_RequestGenerateTableCodeList.Count ? m_RequestGenerateTableCodeList[m_GeneratedTableCodeList.Count].tableName : string.Empty;
-                    var generatingTableName_Xml = m_RequestGenerateTableXmlList.Count > 0 && m_GeneratedTableXmlList.Count < m_RequestGenerateTableXmlList.Count ? m_RequestGenerateTableXmlList[m_GeneratedTableXmlList.Count].tableName : string.Empty;
-                    var generatingTableName = string.IsNullOrWhiteSpace(generatingTableName_Code) == false ? generatingTableName_Code : generatingTableName_Xml;
-                    EditorUtility.DisplayProgressBar("Google Sheets Table Builder", $"Generating Table ... ({generatingTableName})", (float)(m_GeneratedTableCodeList.Count + m_GeneratedTableXmlList.Count) / (m_RequestGenerateTableCodeList.Count + m_RequestGenerateTableXmlList.Count));
+                    EditorUtility.DisplayProgressBar("Google Sheets Table Builder", $"Generating Table ...", (float)(m_GeneratedTableCodeList.Count + m_GeneratedTableXmlList.Count) / (m_RequestGenerateTableCodeList.Count + m_RequestGenerateTableXmlList.Count));
                 }
             }
             
@@ -407,7 +411,10 @@ namespace GoogleSheetsTable
                     {
                         lock (m_GeneratedTableCodeList)
                         {
-                            m_GeneratedTableCodeList.Add(table);
+                            if (m_GeneratedTableCodeList.Contains(table))
+                                Debug.LogError("????");
+                            else
+                                m_GeneratedTableCodeList.Add(table);
                         }
                         Debug.LogError($"Table Generate Error - {table.tableName} 값이 없음.");
                         return;
@@ -462,7 +469,10 @@ namespace GoogleSheetsTable
                     {
                         lock (m_GeneratedTableCodeList)
                         {
-                            m_GeneratedTableCodeList.Add(table);
+                            if (m_GeneratedTableCodeList.Contains(table))
+                                Debug.LogError("????");
+                            else
+                                m_GeneratedTableCodeList.Add(table);
                         }
                         Debug.LogError($"Table Generate Error - {table.tableName} 열 갯수 부족");
                         return;
@@ -472,7 +482,10 @@ namespace GoogleSheetsTable
                     {
                         lock (m_GeneratedTableCodeList)
                         {
-                            m_GeneratedTableCodeList.Add(table);
+                            if (m_GeneratedTableCodeList.Contains(table))
+                                Debug.LogError("????");
+                            else
+                                m_GeneratedTableCodeList.Add(table);
                         }
                         Debug.LogError($"Table Generate Error - {table.tableName} 첫번째 열 이름이 없음");
                         return;
@@ -482,521 +495,541 @@ namespace GoogleSheetsTable
                     {
                         lock (m_GeneratedTableCodeList)
                         {
-                            m_GeneratedTableCodeList.Add(table);
+                            if (m_GeneratedTableCodeList.Contains(table))
+                                Debug.LogError("????");
+                            else
+                                m_GeneratedTableCodeList.Add(table);
                         }
                         Debug.LogError($"Table Generate Error - {table.tableName} 첫번째 열 타입이 없음");
                         return;
                     }
 
                     var strBuilder = new System.Text.StringBuilder();
-                    strBuilder.AppendLine("using System;");
-                    strBuilder.AppendLine("using UnityEngine;");
-                    strBuilder.AppendLine("using Unity.Mathematics;");
-                    strBuilder.AppendLine("using Unity.Collections;");
-                    strBuilder.AppendLine("namespace GoogleSheetsTable");
-                    strBuilder.AppendLine("{");
-                    strBuilder.AppendLineFormat("\tpublic partial struct {0}", table.tableName);
-                    strBuilder.AppendLine("\t{");
 
-                    var colCnt = System.Math.Min(colNames.Count, colTypes.Count);
-                    for (var colIdx = 0; colIdx < colCnt; colIdx ++)
-                    {
-                        if (string.IsNullOrWhiteSpace(colNames[colIdx])) continue;
-                        if (string.IsNullOrWhiteSpace(colTypes[colIdx])) continue;
-
-                        var colName = colNames[colIdx];
-                        var colType = colTypes[colIdx];
-
-                        if (colTypes[colIdx].StartsWith("enum:"))
-                        {
-                            colType = colTypes[colIdx].Substring(5);
-                        }
-                        else if (colTypes[colIdx].StartsWith("array:"))
-                        {
-                            colType = colTypes[colIdx].Substring(6) + "[]";
-                        }
-                        else
-                        {
-                            switch (colType)
-                            {
-                                case "ColorCode":
-                                    colType = "Color";
-                                    break;
-                            }
-                        }
-                        
-                        strBuilder.AppendLineFormat("\t\tpublic readonly {0} {1};", colType, colName);
-                    }
-                    strBuilder.AppendLineFormat("\t\tpublic {0}(System.Xml.XmlReader xmlReader)", table.tableName);
-                    strBuilder.AppendLine("\t\t{");
-                    for (var colIdx = 0; colIdx < colCnt; colIdx ++)
-                    {
-                        if (string.IsNullOrWhiteSpace(colNames[colIdx])) continue;
-                        if (string.IsNullOrWhiteSpace(colTypes[colIdx])) continue;
-
-                        strBuilder.AppendLineFormat("\t\t\t{0} = default;", colNames[colIdx]);
-                        if (colTypes[colIdx].StartsWith("enum:"))
-                        {
-                            strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseEnum(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
-                        }
-                        else if (colTypes[colIdx].StartsWith("array:"))
-                        {
-                            var arrayTypeName = colTypes[colIdx].Substring(6);
-                            switch (arrayTypeName)
-                            {
-                                case "byte":
-                                case "Byte":
-                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseArrayByte(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
-                                    break;
-                                case "short":
-                                case "Int16":
-                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseArrayByte(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
-                                    break;
-                                case "int":
-                                case "Int32":
-                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseArrayInt(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
-                                    break;
-                                case "long":
-                                case "Int64":
-                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseArrayLong(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
-                                    break;
-                                case "decimal":
-                                case "Decimal":
-                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseArrayDecimal(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
-                                    break;
-                                case "float":
-                                case "Single":
-                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseArrayFloat(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
-                                    break;
-                                case "double":
-                                case "Double":
-                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseArrayDouble(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
-                                    break;
-                                case "bool":
-                                case "Boolean":
-                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseArrayBool(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
-                                    break;
-                            }
-                        }
-                        else
-                        {
-                            switch (colTypes[colIdx])
-                            {
-                                case "FixedString32Bytes":
-                                case "FixedString64Bytes":
-                                case "FixedString128Bytes":
-                                case "FixedString256Bytes":
-                                case "FixedString512Bytes":
-                                case "FixedString4096Bytes":
-                                    strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(xmlReader.GetAttribute(\"{0}\") == null ? string.Empty : xmlReader.GetAttribute(\"{0}\"));", colNames[colIdx], colTypes[colIdx]);
-                                    break;
-                                case "string":
-                                case "String":
-                                    strBuilder.AppendLineFormat("\t\t\t{0} = xmlReader.GetAttribute(\"{0}\");", colNames[colIdx]);
-                                    break;
-                                case "byte":
-                                case "Byte":
-                                    strBuilder.AppendLineFormat("\t\t\tbyte.TryParse(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
-                                    break;
-                                case "short":
-                                case "Int16":
-                                    strBuilder.AppendLineFormat("\t\t\tshort.TryParse(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
-                                    break;
-                                case "int":
-                                case "Int32":
-                                    strBuilder.AppendLineFormat("\t\t\tint.TryParse(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
-                                    break;
-                                case "long":
-                                case "Int64":
-                                    strBuilder.AppendLineFormat("\t\t\tlong.TryParse(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
-                                    break;
-                                case "decimal":
-                                case "Decimal":
-                                    strBuilder.AppendLineFormat("\t\t\tdecimal.TryParse(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
-                                    break;
-                                case "float":
-                                case "Single":
-                                    strBuilder.AppendLineFormat("\t\t\tfloat.TryParse(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
-                                    break;
-                                case "double":
-                                case "Double":
-                                    strBuilder.AppendLineFormat("\t\t\tdouble.TryParse(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
-                                    break;
-                                case "bool":
-                                case "Boolean":
-                                    strBuilder.AppendLineFormat("\t\t\tbool.TryParse(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
-                                    break;
-                                case "Vector2Int":
-                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseVector2Int(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
-                                    break;
-                                case "int2":
-                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseInt2(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
-                                    break;
-                                case "Vector3Int":
-                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseVector3Int(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
-                                    break;
-                                case "int3":
-                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseInt3(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
-                                    break;
-                                case "int4":
-                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseInt4(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
-                                    break;
-                                case "Vector2":
-                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseVector2(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
-                                    break;
-                                case "float2":
-                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseFloat2(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
-                                    break;
-                                case "Vector3":
-                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseVector3(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
-                                    break;
-                                case "float3":
-                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseFloat3(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
-                                    break;
-                                case "Vector4":
-                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseVector4(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
-                                    break;
-                                case "float4":
-                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseFloat4(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
-                                    break;
-                                case "Color":
-                                    strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseColor(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
-                                    break;
-                                case "ColorCode":
-                                    strBuilder.AppendLineFormat("\t\t\tColorUtility.TryParseHtmlString(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
-                                    break;
-                            }
-                        }
-                    }
-                    strBuilder.AppendLine("\t\t}");
-                    strBuilder.AppendLineFormat("\t\tpublic {0}(System.IO.BinaryReader binaryReader)", table.tableName);
-                    strBuilder.AppendLine("\t\t{");
-                    for (var colIdx = 0; colIdx < colCnt; colIdx ++)
-                    {
-                        if (string.IsNullOrWhiteSpace(colNames[colIdx])) continue;
-                        if (string.IsNullOrWhiteSpace(colTypes[colIdx])) continue;
-
-                        if (colTypes[colIdx].StartsWith("enum:"))
-                        {
-                            var assembly = System.Reflection.Assembly.GetAssembly(typeof(GoogleSheetsAPI));
-                            var enumName = colTypes[colIdx].Substring(5);
-                            var enumType = assembly.GetType(enumName);
-                            if (enumType != null)
-                            {
-                                var underlyingType = Enum.GetUnderlyingType(enumType);
-                                if (underlyingType == typeof(byte))
-                                    strBuilder.AppendLineFormat("\t\t\t{0} = ({1})binaryReader.ReadByte();", colNames[colIdx], enumName);
-                                else if (underlyingType == typeof(short))
-                                    strBuilder.AppendLineFormat("\t\t\t{0} = ({1})binaryReader.ReadInt16();", colNames[colIdx], enumName);
-                                else if (underlyingType == typeof(int))
-                                    strBuilder.AppendLineFormat("\t\t\t{0} = ({1})binaryReader.ReadInt32();", colNames[colIdx], enumName);
-                                else if (underlyingType == typeof(long))
-                                    strBuilder.AppendLineFormat("\t\t\t{0} = ({1})binaryReader.ReadInt64();", colNames[colIdx], enumName);
-                            }
-                        }
-                        else if (colTypes[colIdx].StartsWith("array:"))
-                        {
-                            var arrayTypeName = colTypes[colIdx].Substring(6);
-                            strBuilder.AppendLineFormat("\t\t\t{0} = new {1}[binaryReader.ReadInt32()];", colNames[colIdx], arrayTypeName);
-                            strBuilder.AppendLineFormat("\t\t\tfor (var i = 0; i < {0}.Length; i ++)", colNames[colIdx]);
-                            switch (arrayTypeName)
-                            {
-                                case "byte":
-                                case "Byte":
-                                    strBuilder.AppendLineFormat("\t\t\t\t{0}[i] = binaryReader.ReadByte();", colNames[colIdx]);
-                                    break;
-                                case "short":
-                                case "Int16":
-                                    strBuilder.AppendLineFormat("\t\t\t\t{0}[i] = binaryReader.ReadInt16();", colNames[colIdx]);
-                                    break;
-                                case "int":
-                                case "Int32":
-                                    strBuilder.AppendLineFormat("\t\t\t\t{0}[i] = binaryReader.ReadInt32();", colNames[colIdx]);
-                                    break;
-                                case "long":
-                                case "Int64":
-                                    strBuilder.AppendLineFormat("\t\t\t\t{0}[i] = binaryReader.ReadInt64();", colNames[colIdx]);
-                                    break;
-                                case "decimal":
-                                case "Decimal":
-                                    strBuilder.AppendLineFormat("\t\t\t\t{0}[i] = binaryReader.ReadDecimal();", colNames[colIdx]);
-                                    break;
-                                case "float":
-                                case "Single":
-                                    strBuilder.AppendLineFormat("\t\t\t\t{0}[i] = binaryReader.ReadSingle();", colNames[colIdx]);
-                                    break;
-                                case "double":
-                                case "Double":
-                                    strBuilder.AppendLineFormat("\t\t\t\t{0}[i] = binaryReader.ReadDouble();", colNames[colIdx]);
-                                    break;
-                                case "bool":
-                                case "Boolean":
-                                    strBuilder.AppendLineFormat("\t\t\t\t{0}[i] = binaryReader.ReadBoolean();", colNames[colIdx]);
-                                    break;
-                                default:
-                                    strBuilder.AppendLineFormat("\t\t\t\t{0}[i] = default;", colNames[colIdx]);
-                                    break;
-                            }
-                        }
-                        else
-                        {
-                            switch (colTypes[colIdx])
-                            {
-                                case "FixedString32Bytes":
-                                case "FixedString64Bytes":
-                                case "FixedString128Bytes":
-                                case "FixedString256Bytes":
-                                case "FixedString512Bytes":
-                                case "FixedString4096Bytes":
-                                    strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadString());", colNames[colIdx], colTypes[colIdx]);
-                                    break;
-                                case "string":
-                                case "String":
-                                    strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadString();", colNames[colIdx]);
-                                    break;
-                                case "byte":
-                                case "Byte":
-                                    strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadByte();", colNames[colIdx]);
-                                    break;
-                                case "short":
-                                case "Int16":
-                                    strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadInt16();", colNames[colIdx]);
-                                    break;
-                                case "int":
-                                case "Int32":
-                                    strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadInt32();", colNames[colIdx]);
-                                    break;
-                                case "long":
-                                case "Int64":
-                                    strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadInt64();", colNames[colIdx]);
-                                    break;
-                                case "decimal":
-                                case "Decimal":
-                                    strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadDecimal();", colNames[colIdx]);
-                                    break;
-                                case "float":
-                                case "Single":
-                                    strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadSingle();", colNames[colIdx]);
-                                    break;
-                                case "double":
-                                case "Double":
-                                    strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadDouble();", colNames[colIdx]);
-                                    break;
-                                case "bool":
-                                case "Boolean":
-                                    strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadBoolean();", colNames[colIdx]);
-                                    break;
-                                case "Vector2Int":
-                                case "int2":
-                                    strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadInt32(), binaryReader.ReadInt32());", colNames[colIdx], colTypes[colIdx]);
-                                    break;
-                                case "Vector3Int":
-                                case "int3":
-                                    strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadInt32(), binaryReader.ReadInt32(), binaryReader.ReadInt32());", colNames[colIdx], colTypes[colIdx]);
-                                    break;
-                                case "int4":
-                                    strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadInt32(), binaryReader.ReadInt32(), binaryReader.ReadInt32(), binaryReader.ReadInt32());", colNames[colIdx], colTypes[colIdx]);
-                                    break;
-                                case "Vector2":
-                                case "float2":
-                                    strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadSingle(), binaryReader.ReadSingle());", colNames[colIdx], colTypes[colIdx]);
-                                    break;
-                                case "Vector3":
-                                case "float3":
-                                    strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadSingle(), binaryReader.ReadSingle(), binaryReader.ReadSingle());", colNames[colIdx], colTypes[colIdx]);
-                                    break;
-                                case "Vector4":
-                                case "float4":
-                                    strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadSingle(), binaryReader.ReadSingle(), binaryReader.ReadSingle(), binaryReader.ReadSingle());", colNames[colIdx], colTypes[colIdx]);
-                                    break;
-                                case "Color":
-                                case "ColorCode":
-                                    strBuilder.AppendLineFormat("\t\t\t{0} = new Color32(binaryReader.ReadByte(), binaryReader.ReadByte(), binaryReader.ReadByte(), binaryReader.ReadByte());", colNames[colIdx]);
-                                    break;
-                                default:
-                                    strBuilder.AppendLineFormat("\t\t\t{0} = default;", colNames[colIdx]);
-                                    break;
-                            }
-                        }
-                    }
-                    strBuilder.AppendLine("\t\t}");
-                    strBuilder.AppendLineFormat("\t\tpublic void ExportBinary(System.IO.BinaryWriter binaryWriter)", table.tableName);
-                    strBuilder.AppendLine("\t\t{");
-                    for (var colIdx = 0; colIdx < colCnt; colIdx ++)
-                    {
-                        if (string.IsNullOrWhiteSpace(colNames[colIdx])) continue;
-                        if (string.IsNullOrWhiteSpace(colTypes[colIdx])) continue;
-
-                        if (colTypes[colIdx].StartsWith("enum:"))
-                        {
-                            var assembly = System.Reflection.Assembly.GetAssembly(typeof(GoogleSheetsAPI));
-                            var enumName = colTypes[colIdx].Substring(5);
-                            var enumType = assembly.GetType(enumName);
-                            if (enumType != null)
-                            {
-                                var underlyingType = Enum.GetUnderlyingType(enumType);
-                                strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write(({1}){0});", colNames[colIdx], underlyingType.Name);
-                            }
-                        }
-                        else if (colTypes[colIdx].StartsWith("array:"))
-                        {
-                            strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write({0} == null ? 0 : {0}.Length);", colNames[colIdx]);
-                            strBuilder.AppendLineFormat("\t\t\tif ({0} != null) for (var i = 0; i < {0}.Length; i ++) binaryWriter.Write({0}[i]);", colNames[colIdx]);
-                        }
-                        else
-                        {
-                            switch (colTypes[colIdx])
-                            {
-                                case "FixedString32Bytes":
-                                case "FixedString64Bytes":
-                                case "FixedString128Bytes":
-                                case "FixedString256Bytes":
-                                case "FixedString512Bytes":
-                                case "FixedString4096Bytes":
-                                    strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write({0}.ToString());", colNames[colIdx]);
-                                    break;
-                                case "string":
-                                case "String":
-                                case "byte":
-                                case "Byte":
-                                case "short":
-                                case "Int16":
-                                case "int":
-                                case "Int32":
-                                case "long":
-                                case "Int64":
-                                case "decimal":
-                                case "Decimal":
-                                case "float":
-                                case "Single":
-                                case "double":
-                                case "Double":
-                                case "bool":
-                                case "Boolean":
-                                    strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write({0});", colNames[colIdx]);
-                                    break;
-                                case "Vector2Int":
-                                case "int2":
-                                case "Vector2":
-                                case "float2":
-                                    strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write({0}.x);", colNames[colIdx]);
-                                    strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write({0}.y);", colNames[colIdx]);
-                                    break;
-                                case "Vector3Int":
-                                case "int3":
-                                case "Vector3":
-                                case "float3":
-                                    strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write({0}.x);", colNames[colIdx]);
-                                    strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write({0}.y);", colNames[colIdx]);
-                                    strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write({0}.z);", colNames[colIdx]);
-                                    break;
-                                case "int4":
-                                case "Vector4":
-                                case "float4":
-                                    strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write({0}.x);", colNames[colIdx]);
-                                    strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write({0}.y);", colNames[colIdx]);
-                                    strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write({0}.z);", colNames[colIdx]);
-                                    strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write({0}.w);", colNames[colIdx]);
-                                    break;
-                                case "Color":
-                                case "ColorCode":
-                                    strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write((byte)({0}.r * byte.MaxValue));", colNames[colIdx]);
-                                    strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write((byte)({0}.g * byte.MaxValue));", colNames[colIdx]);
-                                    strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write((byte)({0}.b * byte.MaxValue));", colNames[colIdx]);
-                                    strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write((byte)({0}.a * byte.MaxValue));", colNames[colIdx]);
-                                    break;
-                            }
-                        }
-                    }
-                    strBuilder.AppendLine("\t\t}");
-                    strBuilder.AppendLine("\t}");
-                    strBuilder.AppendLine("}");
-
+                    // Generate Table Struct Code
                     try
                     {
+                        strBuilder.Clear();
+                        strBuilder.AppendLine("using System;");
+                        strBuilder.AppendLine("using UnityEngine;");
+                        strBuilder.AppendLine("using Unity.Mathematics;");
+                        strBuilder.AppendLine("using Unity.Collections;");
+                        strBuilder.AppendLine("namespace GoogleSheetsTable");
+                        strBuilder.AppendLine("{");
+                        strBuilder.AppendLineFormat("\tpublic partial struct {0}", table.tableName);
+                        strBuilder.AppendLine("\t{");
+
+                        var colCnt = System.Math.Min(colNames.Count, colTypes.Count);
+                        for (var colIdx = 0; colIdx < colCnt; colIdx ++)
+                        {
+                            if (string.IsNullOrWhiteSpace(colNames[colIdx])) continue;
+                            if (string.IsNullOrWhiteSpace(colTypes[colIdx])) continue;
+
+                            var colName = colNames[colIdx];
+                            var colType = colTypes[colIdx];
+
+                            if (colTypes[colIdx].StartsWith("enum:"))
+                            {
+                                colType = colTypes[colIdx].Substring(5);
+                            }
+                            else if (colTypes[colIdx].StartsWith("array:"))
+                            {
+                                colType = colTypes[colIdx].Substring(6) + "[]";
+                            }
+                            else
+                            {
+                                switch (colType)
+                                {
+                                    case "ColorCode":
+                                        colType = "Color";
+                                        break;
+                                }
+                            }
+
+                            strBuilder.AppendLineFormat("\t\tpublic readonly {0} {1};", colType, colName);
+                        }
+                        strBuilder.AppendLineFormat("\t\tpublic {0}(System.Xml.XmlReader xmlReader)", table.tableName);
+                        strBuilder.AppendLine("\t\t{");
+                        for (var colIdx = 0; colIdx < colCnt; colIdx ++)
+                        {
+                            if (string.IsNullOrWhiteSpace(colNames[colIdx])) continue;
+                            if (string.IsNullOrWhiteSpace(colTypes[colIdx])) continue;
+
+                            strBuilder.AppendLineFormat("\t\t\t{0} = default;", colNames[colIdx]);
+                            if (colTypes[colIdx].StartsWith("enum:"))
+                            {
+                                strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseEnum(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                            }
+                            else if (colTypes[colIdx].StartsWith("array:"))
+                            {
+                                var arrayTypeName = colTypes[colIdx].Substring(6);
+                                switch (arrayTypeName)
+                                {
+                                    case "byte":
+                                    case "Byte":
+                                        strBuilder.AppendLineFormat("\t\t\tif (ParseUtility.TryParseArrayByte(xmlReader.GetAttribute(\"{0}\"), out {0}) == false) {0} = Array.Empty<{1}>();", colNames[colIdx], arrayTypeName);
+                                        break;
+                                    case "short":
+                                    case "Int16":
+                                        strBuilder.AppendLineFormat("\t\t\tif (ParseUtility.TryParseArrayByte(xmlReader.GetAttribute(\"{0}\"), out {0}) == false) {0} = Array.Empty<{1}>();", colNames[colIdx], arrayTypeName);
+                                        break;
+                                    case "int":
+                                    case "Int32":
+                                        strBuilder.AppendLineFormat("\t\t\tif (ParseUtility.TryParseArrayInt(xmlReader.GetAttribute(\"{0}\"), out {0}) == false) {0} = Array.Empty<{1}>();", colNames[colIdx], arrayTypeName);
+                                        break;
+                                    case "long":
+                                    case "Int64":
+                                        strBuilder.AppendLineFormat("\t\t\tif (ParseUtility.TryParseArrayLong(xmlReader.GetAttribute(\"{0}\"), out {0}) == false) {0} = Array.Empty<{1}>();", colNames[colIdx], arrayTypeName);
+                                        break;
+                                    case "decimal":
+                                    case "Decimal":
+                                        strBuilder.AppendLineFormat("\t\t\tif (ParseUtility.TryParseArrayDecimal(xmlReader.GetAttribute(\"{0}\"), out {0}) == false) {0} = Array.Empty<{1}>();", colNames[colIdx], arrayTypeName);
+                                        break;
+                                    case "float":
+                                    case "Single":
+                                        strBuilder.AppendLineFormat("\t\t\tif (ParseUtility.TryParseArrayFloat(xmlReader.GetAttribute(\"{0}\"), out {0}) == false) {0} = Array.Empty<{1}>();", colNames[colIdx], arrayTypeName);
+                                        break;
+                                    case "double":
+                                    case "Double":
+                                        strBuilder.AppendLineFormat("\t\t\tif (ParseUtility.TryParseArrayDouble(xmlReader.GetAttribute(\"{0}\"), out {0}) == false) {0} = Array.Empty<{1}>();", colNames[colIdx], arrayTypeName);
+                                        break;
+                                    case "bool":
+                                    case "Boolean":
+                                        strBuilder.AppendLineFormat("\t\t\tif (ParseUtility.TryParseArrayBool(xmlReader.GetAttribute(\"{0}\"), out {0}) == false) {0} = Array.Empty<{1}>();", colNames[colIdx], arrayTypeName);
+                                        break;
+                                }
+                            }
+                            else
+                            {
+                                switch (colTypes[colIdx])
+                                {
+                                    case "FixedString32Bytes":
+                                    case "FixedString64Bytes":
+                                    case "FixedString128Bytes":
+                                    case "FixedString256Bytes":
+                                    case "FixedString512Bytes":
+                                    case "FixedString4096Bytes":
+                                        strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(xmlReader.GetAttribute(\"{0}\") == null ? string.Empty : xmlReader.GetAttribute(\"{0}\"));",
+                                            colNames[colIdx],
+                                            colTypes[colIdx]);
+                                        break;
+                                    case "string":
+                                    case "String":
+                                        strBuilder.AppendLineFormat("\t\t\t{0} = xmlReader.GetAttribute(\"{0}\");", colNames[colIdx]);
+                                        break;
+                                    case "byte":
+                                    case "Byte":
+                                        strBuilder.AppendLineFormat("\t\t\tbyte.TryParse(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                        break;
+                                    case "short":
+                                    case "Int16":
+                                        strBuilder.AppendLineFormat("\t\t\tshort.TryParse(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                        break;
+                                    case "int":
+                                    case "Int32":
+                                        strBuilder.AppendLineFormat("\t\t\tint.TryParse(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                        break;
+                                    case "long":
+                                    case "Int64":
+                                        strBuilder.AppendLineFormat("\t\t\tlong.TryParse(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                        break;
+                                    case "decimal":
+                                    case "Decimal":
+                                        strBuilder.AppendLineFormat("\t\t\tdecimal.TryParse(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                        break;
+                                    case "float":
+                                    case "Single":
+                                        strBuilder.AppendLineFormat("\t\t\tfloat.TryParse(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                        break;
+                                    case "double":
+                                    case "Double":
+                                        strBuilder.AppendLineFormat("\t\t\tdouble.TryParse(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                        break;
+                                    case "bool":
+                                    case "Boolean":
+                                        strBuilder.AppendLineFormat("\t\t\tbool.TryParse(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                        break;
+                                    case "Vector2Int":
+                                        strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseVector2Int(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                        break;
+                                    case "int2":
+                                        strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseInt2(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                        break;
+                                    case "Vector3Int":
+                                        strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseVector3Int(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                        break;
+                                    case "int3":
+                                        strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseInt3(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                        break;
+                                    case "int4":
+                                        strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseInt4(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                        break;
+                                    case "Vector2":
+                                        strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseVector2(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                        break;
+                                    case "float2":
+                                        strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseFloat2(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                        break;
+                                    case "Vector3":
+                                        strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseVector3(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                        break;
+                                    case "float3":
+                                        strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseFloat3(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                        break;
+                                    case "Vector4":
+                                        strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseVector4(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                        break;
+                                    case "float4":
+                                        strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseFloat4(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                        break;
+                                    case "Color":
+                                        strBuilder.AppendLineFormat("\t\t\tParseUtility.TryParseColor(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                        break;
+                                    case "ColorCode":
+                                        strBuilder.AppendLineFormat("\t\t\tColorUtility.TryParseHtmlString(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                        break;
+                                }
+                            }
+                        }
+                        strBuilder.AppendLine("\t\t}");
+                        strBuilder.AppendLineFormat("\t\tpublic {0}(System.IO.BinaryReader binaryReader)", table.tableName);
+                        strBuilder.AppendLine("\t\t{");
+                        for (var colIdx = 0; colIdx < colCnt; colIdx ++)
+                        {
+                            if (string.IsNullOrWhiteSpace(colNames[colIdx])) continue;
+                            if (string.IsNullOrWhiteSpace(colTypes[colIdx])) continue;
+
+                            if (colTypes[colIdx].StartsWith("enum:"))
+                            {
+                                var assembly = System.Reflection.Assembly.GetAssembly(typeof(GoogleSheetsAPI));
+                                var enumName = colTypes[colIdx].Substring(5);
+                                var enumType = assembly.GetType(enumName);
+                                if (enumType != null)
+                                {
+                                    var underlyingType = Enum.GetUnderlyingType(enumType);
+                                    if (underlyingType == typeof(byte))
+                                        strBuilder.AppendLineFormat("\t\t\t{0} = ({1})binaryReader.ReadByte();", colNames[colIdx], enumName);
+                                    else if (underlyingType == typeof(short))
+                                        strBuilder.AppendLineFormat("\t\t\t{0} = ({1})binaryReader.ReadInt16();", colNames[colIdx], enumName);
+                                    else if (underlyingType == typeof(int))
+                                        strBuilder.AppendLineFormat("\t\t\t{0} = ({1})binaryReader.ReadInt32();", colNames[colIdx], enumName);
+                                    else if (underlyingType == typeof(long))
+                                        strBuilder.AppendLineFormat("\t\t\t{0} = ({1})binaryReader.ReadInt64();", colNames[colIdx], enumName);
+                                }
+                            }
+                            else if (colTypes[colIdx].StartsWith("array:"))
+                            {
+                                var arrayTypeName = colTypes[colIdx].Substring(6);
+                                strBuilder.AppendLineFormat("\t\t\t{0} = new {1}[binaryReader.ReadInt32()];", colNames[colIdx], arrayTypeName);
+                                strBuilder.AppendLineFormat("\t\t\tfor (var i = 0; i < {0}.Length; i ++)", colNames[colIdx]);
+                                switch (arrayTypeName)
+                                {
+                                    case "byte":
+                                    case "Byte":
+                                        strBuilder.AppendLineFormat("\t\t\t\t{0}[i] = binaryReader.ReadByte();", colNames[colIdx]);
+                                        break;
+                                    case "short":
+                                    case "Int16":
+                                        strBuilder.AppendLineFormat("\t\t\t\t{0}[i] = binaryReader.ReadInt16();", colNames[colIdx]);
+                                        break;
+                                    case "int":
+                                    case "Int32":
+                                        strBuilder.AppendLineFormat("\t\t\t\t{0}[i] = binaryReader.ReadInt32();", colNames[colIdx]);
+                                        break;
+                                    case "long":
+                                    case "Int64":
+                                        strBuilder.AppendLineFormat("\t\t\t\t{0}[i] = binaryReader.ReadInt64();", colNames[colIdx]);
+                                        break;
+                                    case "decimal":
+                                    case "Decimal":
+                                        strBuilder.AppendLineFormat("\t\t\t\t{0}[i] = binaryReader.ReadDecimal();", colNames[colIdx]);
+                                        break;
+                                    case "float":
+                                    case "Single":
+                                        strBuilder.AppendLineFormat("\t\t\t\t{0}[i] = binaryReader.ReadSingle();", colNames[colIdx]);
+                                        break;
+                                    case "double":
+                                    case "Double":
+                                        strBuilder.AppendLineFormat("\t\t\t\t{0}[i] = binaryReader.ReadDouble();", colNames[colIdx]);
+                                        break;
+                                    case "bool":
+                                    case "Boolean":
+                                        strBuilder.AppendLineFormat("\t\t\t\t{0}[i] = binaryReader.ReadBoolean();", colNames[colIdx]);
+                                        break;
+                                    default:
+                                        strBuilder.AppendLineFormat("\t\t\t\t{0}[i] = default;", colNames[colIdx]);
+                                        break;
+                                }
+                            }
+                            else
+                            {
+                                switch (colTypes[colIdx])
+                                {
+                                    case "FixedString32Bytes":
+                                    case "FixedString64Bytes":
+                                    case "FixedString128Bytes":
+                                    case "FixedString256Bytes":
+                                    case "FixedString512Bytes":
+                                    case "FixedString4096Bytes":
+                                        strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadString());", colNames[colIdx], colTypes[colIdx]);
+                                        break;
+                                    case "string":
+                                    case "String":
+                                        strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadString();", colNames[colIdx]);
+                                        break;
+                                    case "byte":
+                                    case "Byte":
+                                        strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadByte();", colNames[colIdx]);
+                                        break;
+                                    case "short":
+                                    case "Int16":
+                                        strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadInt16();", colNames[colIdx]);
+                                        break;
+                                    case "int":
+                                    case "Int32":
+                                        strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadInt32();", colNames[colIdx]);
+                                        break;
+                                    case "long":
+                                    case "Int64":
+                                        strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadInt64();", colNames[colIdx]);
+                                        break;
+                                    case "decimal":
+                                    case "Decimal":
+                                        strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadDecimal();", colNames[colIdx]);
+                                        break;
+                                    case "float":
+                                    case "Single":
+                                        strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadSingle();", colNames[colIdx]);
+                                        break;
+                                    case "double":
+                                    case "Double":
+                                        strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadDouble();", colNames[colIdx]);
+                                        break;
+                                    case "bool":
+                                    case "Boolean":
+                                        strBuilder.AppendLineFormat("\t\t\t{0} = binaryReader.ReadBoolean();", colNames[colIdx]);
+                                        break;
+                                    case "Vector2Int":
+                                    case "int2":
+                                        strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadInt32(), binaryReader.ReadInt32());", colNames[colIdx], colTypes[colIdx]);
+                                        break;
+                                    case "Vector3Int":
+                                    case "int3":
+                                        strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadInt32(), binaryReader.ReadInt32(), binaryReader.ReadInt32());", colNames[colIdx], colTypes[colIdx]);
+                                        break;
+                                    case "int4":
+                                        strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadInt32(), binaryReader.ReadInt32(), binaryReader.ReadInt32(), binaryReader.ReadInt32());",
+                                            colNames[colIdx],
+                                            colTypes[colIdx]);
+                                        break;
+                                    case "Vector2":
+                                    case "float2":
+                                        strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadSingle(), binaryReader.ReadSingle());", colNames[colIdx], colTypes[colIdx]);
+                                        break;
+                                    case "Vector3":
+                                    case "float3":
+                                        strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadSingle(), binaryReader.ReadSingle(), binaryReader.ReadSingle());", colNames[colIdx], colTypes[colIdx]);
+                                        break;
+                                    case "Vector4":
+                                    case "float4":
+                                        strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadSingle(), binaryReader.ReadSingle(), binaryReader.ReadSingle(), binaryReader.ReadSingle());",
+                                            colNames[colIdx],
+                                            colTypes[colIdx]);
+                                        break;
+                                    case "Color":
+                                    case "ColorCode":
+                                        strBuilder.AppendLineFormat("\t\t\t{0} = new Color32(binaryReader.ReadByte(), binaryReader.ReadByte(), binaryReader.ReadByte(), binaryReader.ReadByte());", colNames[colIdx]);
+                                        break;
+                                    default:
+                                        strBuilder.AppendLineFormat("\t\t\t{0} = default;", colNames[colIdx]);
+                                        break;
+                                }
+                            }
+                        }
+                        strBuilder.AppendLine("\t\t}");
+                        strBuilder.AppendLineFormat("\t\tpublic void ExportBinary(System.IO.BinaryWriter binaryWriter)", table.tableName);
+                        strBuilder.AppendLine("\t\t{");
+                        for (var colIdx = 0; colIdx < colCnt; colIdx ++)
+                        {
+                            if (string.IsNullOrWhiteSpace(colNames[colIdx])) continue;
+                            if (string.IsNullOrWhiteSpace(colTypes[colIdx])) continue;
+
+                            if (colTypes[colIdx].StartsWith("enum:"))
+                            {
+                                var assembly = System.Reflection.Assembly.GetAssembly(typeof(GoogleSheetsAPI));
+                                var enumName = colTypes[colIdx].Substring(5);
+                                var enumType = assembly.GetType(enumName);
+                                if (enumType != null)
+                                {
+                                    var underlyingType = Enum.GetUnderlyingType(enumType);
+                                    strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write(({1}){0});", colNames[colIdx], underlyingType.Name);
+                                }
+                            }
+                            else if (colTypes[colIdx].StartsWith("array:"))
+                            {
+                                strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write({0} == null ? 0 : {0}.Length);", colNames[colIdx]);
+                                strBuilder.AppendLineFormat("\t\t\tif ({0} != null) for (var i = 0; i < {0}.Length; i ++) binaryWriter.Write({0}[i]);", colNames[colIdx]);
+                            }
+                            else
+                            {
+                                switch (colTypes[colIdx])
+                                {
+                                    case "FixedString32Bytes":
+                                    case "FixedString64Bytes":
+                                    case "FixedString128Bytes":
+                                    case "FixedString256Bytes":
+                                    case "FixedString512Bytes":
+                                    case "FixedString4096Bytes":
+                                        strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write({0}.ToString());", colNames[colIdx]);
+                                        break;
+                                    case "string":
+                                    case "String":
+                                    case "byte":
+                                    case "Byte":
+                                    case "short":
+                                    case "Int16":
+                                    case "int":
+                                    case "Int32":
+                                    case "long":
+                                    case "Int64":
+                                    case "decimal":
+                                    case "Decimal":
+                                    case "float":
+                                    case "Single":
+                                    case "double":
+                                    case "Double":
+                                    case "bool":
+                                    case "Boolean":
+                                        strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write({0});", colNames[colIdx]);
+                                        break;
+                                    case "Vector2Int":
+                                    case "int2":
+                                    case "Vector2":
+                                    case "float2":
+                                        strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write({0}.x);", colNames[colIdx]);
+                                        strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write({0}.y);", colNames[colIdx]);
+                                        break;
+                                    case "Vector3Int":
+                                    case "int3":
+                                    case "Vector3":
+                                    case "float3":
+                                        strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write({0}.x);", colNames[colIdx]);
+                                        strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write({0}.y);", colNames[colIdx]);
+                                        strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write({0}.z);", colNames[colIdx]);
+                                        break;
+                                    case "int4":
+                                    case "Vector4":
+                                    case "float4":
+                                        strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write({0}.x);", colNames[colIdx]);
+                                        strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write({0}.y);", colNames[colIdx]);
+                                        strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write({0}.z);", colNames[colIdx]);
+                                        strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write({0}.w);", colNames[colIdx]);
+                                        break;
+                                    case "Color":
+                                    case "ColorCode":
+                                        strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write((byte)({0}.r * byte.MaxValue));", colNames[colIdx]);
+                                        strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write((byte)({0}.g * byte.MaxValue));", colNames[colIdx]);
+                                        strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write((byte)({0}.b * byte.MaxValue));", colNames[colIdx]);
+                                        strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write((byte)({0}.a * byte.MaxValue));", colNames[colIdx]);
+                                        break;
+                                }
+                            }
+                        }
+                        strBuilder.AppendLine("\t\t}");
+                        strBuilder.AppendLine("\t}");
+                        strBuilder.AppendLine("}");
                         System.IO.File.WriteAllText(System.IO.Path.Combine(m_ExportCodeTempPath, $"{table.tableName}.cs"), strBuilder.ToString());
                     }
                     catch (Exception e)
                     {
                         lock (m_GeneratedTableCodeList)
                         {
-                            m_GeneratedTableCodeList.Add(table);
+                            if (m_GeneratedTableCodeList.Contains(table))
+                                Debug.LogError("????");
+                            else
+                                m_GeneratedTableCodeList.Add(table);
                         }
                         Debug.LogError($"Table Generate Error - {table.tableName} Struct 코드 저장 실패\n{e}");
                         return;
                     }
 
-                    strBuilder.Clear();
-                    strBuilder.AppendLine("using System.Collections;");
-                    strBuilder.AppendLine("using System.Collections.Generic;");
-                    strBuilder.AppendLine("using System.Linq;");
-                    strBuilder.AppendLine("namespace GoogleSheetsTable");
-                    strBuilder.AppendLine("{");
-                    strBuilder.AppendLine("\tpublic partial class TableManager");
-                    strBuilder.AppendLine("\t{");
-                    strBuilder.AppendLineFormat("\t\tprivate readonly Dictionary<{1}, {0}> m_Dic{0} = new Dictionary<int, {0}>();", table.tableName, colTypes[0]);
-                    strBuilder.AppendLineFormat("\t\tpublic void LoadTable_{0}(System.Xml.XmlReader xmlReader)", table.tableName);
-                    strBuilder.AppendLine("\t\t{");
-                    strBuilder.AppendLineFormat("\t\t\tm_Dic{0}.Clear();", table.tableName);
-                    strBuilder.AppendLine("\t\t\twhile (xmlReader.Read())");
-                    strBuilder.AppendLine("\t\t\t{");
-                    strBuilder.AppendLine("\t\t\t\tif (xmlReader.NodeType != System.Xml.XmlNodeType.Element) continue;");
-                    strBuilder.AppendLineFormat("\t\t\t\tif (xmlReader.Name != \"{0}\") continue;", table.tableName);
-                    strBuilder.AppendLineFormat("\t\t\t\tvar data = new {0}(xmlReader);", table.tableName);
-                    strBuilder.AppendLineFormat("\t\t\t\tm_Dic{0}.Add(data.{1}, data);", table.tableName, colNames[0]);
-                    strBuilder.AppendLine("\t\t\t}");
-                    strBuilder.AppendLine("\t\t}");
-                    strBuilder.AppendLineFormat("\t\tpublic void LoadTable_{0}(System.IO.BinaryReader binaryReader)", table.tableName);
-                    strBuilder.AppendLine("\t\t{");
-                    strBuilder.AppendLineFormat("\t\t\tm_Dic{0}.Clear();", table.tableName);
-                    strBuilder.AppendLine("\t\t\tvar count = binaryReader.ReadInt32();");
-                    strBuilder.AppendLine("\t\t\tfor (var i = 0; i < count; i ++)");
-                    strBuilder.AppendLine("\t\t\t{");
-                    strBuilder.AppendLineFormat("\t\t\t\tvar data = new {0}(binaryReader);", table.tableName);
-                    strBuilder.AppendLineFormat("\t\t\t\tm_Dic{0}.Add(data.{1}, data);", table.tableName, colNames[0]);
-                    strBuilder.AppendLine("\t\t\t}");
-                    strBuilder.AppendLine("\t\t}");
-                    strBuilder.AppendLineFormat("\t\tpublic void ExportBinary_{0}(System.IO.BinaryWriter binaryWriter)", table.tableName);
-                    strBuilder.AppendLine("\t\t{");
-                    strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write(m_Dic{0}.Count);", table.tableName);
-                    strBuilder.AppendLineFormat("\t\t\tforeach (var data in m_Dic{0}.Values)", table.tableName);
-                    strBuilder.AppendLine("\t\t\t{");
-                    strBuilder.AppendLine("\t\t\t\tdata.ExportBinary(binaryWriter);");
-                    strBuilder.AppendLine("\t\t\t}");
-                    strBuilder.AppendLine("\t\t}");
-                    strBuilder.AppendLineFormat("\t\tpublic {0} Get{0}By{1}({2} {3})", table.tableName, colNames[0], colTypes[0], colNames[0].ToLower());
-                    strBuilder.AppendLine("\t\t{");
-                    strBuilder.AppendLineFormat("\t\t\tif (m_Dic{0}.ContainsKey({1}) == false) return default;", table.tableName, colNames[0].ToLower());
-                    strBuilder.AppendLineFormat("\t\t\treturn m_Dic{0}[{1}];", table.tableName, colNames[0].ToLower());
-                    strBuilder.AppendLine("\t\t}");
-                    strBuilder.AppendLineFormat("\t\tpublic int Get{0}DataCount()", table.tableName);
-                    strBuilder.AppendLine("\t\t{");
-                    strBuilder.AppendLineFormat("\t\t\treturn m_Dic{0}.Count;", table.tableName);
-                    strBuilder.AppendLine("\t\t}");
-                    strBuilder.AppendLineFormat("\t\tpublic IEnumerable<{0}> GetAll{0}Data()", table.tableName);
-                    strBuilder.AppendLine("\t\t{");
-                    strBuilder.AppendLineFormat("\t\t\treturn m_Dic{0}.Values.ToArray();", table.tableName);
-                    strBuilder.AppendLine("\t\t}");
-                    strBuilder.AppendLine("\t}");
-                    strBuilder.AppendLine("}");
-
+                    // Generate Table Load, Export Code
                     try
                     {
+                        strBuilder.Clear();
+                        strBuilder.AppendLine("using System.Collections;");
+                        strBuilder.AppendLine("using System.Collections.Generic;");
+                        strBuilder.AppendLine("using System.Linq;");
+                        strBuilder.AppendLine("namespace GoogleSheetsTable");
+                        strBuilder.AppendLine("{");
+                        strBuilder.AppendLine("\tpublic partial class TableManager");
+                        strBuilder.AppendLine("\t{");
+                        strBuilder.AppendLineFormat("\t\tprivate readonly Dictionary<{1}, {0}> m_Dic{0} = new Dictionary<int, {0}>();", table.tableName, colTypes[0]);
+                        strBuilder.AppendLineFormat("\t\tpublic void LoadTable_{0}(System.Xml.XmlReader xmlReader)", table.tableName);
+                        strBuilder.AppendLine("\t\t{");
+                        strBuilder.AppendLineFormat("\t\t\tm_Dic{0}.Clear();", table.tableName);
+                        strBuilder.AppendLine("\t\t\twhile (xmlReader.Read())");
+                        strBuilder.AppendLine("\t\t\t{");
+                        strBuilder.AppendLine("\t\t\t\tif (xmlReader.NodeType != System.Xml.XmlNodeType.Element) continue;");
+                        strBuilder.AppendLineFormat("\t\t\t\tif (xmlReader.Name != \"{0}\") continue;", table.tableName);
+                        strBuilder.AppendLineFormat("\t\t\t\tvar data = new {0}(xmlReader);", table.tableName);
+                        strBuilder.AppendLineFormat("\t\t\t\tm_Dic{0}.Add(data.{1}, data);", table.tableName, colNames[0]);
+                        strBuilder.AppendLine("\t\t\t}");
+                        strBuilder.AppendLine("\t\t}");
+                        strBuilder.AppendLineFormat("\t\tpublic void LoadTable_{0}(System.IO.BinaryReader binaryReader)", table.tableName);
+                        strBuilder.AppendLine("\t\t{");
+                        strBuilder.AppendLineFormat("\t\t\tm_Dic{0}.Clear();", table.tableName);
+                        strBuilder.AppendLine("\t\t\tvar count = binaryReader.ReadInt32();");
+                        strBuilder.AppendLine("\t\t\tfor (var i = 0; i < count; i ++)");
+                        strBuilder.AppendLine("\t\t\t{");
+                        strBuilder.AppendLineFormat("\t\t\t\tvar data = new {0}(binaryReader);", table.tableName);
+                        strBuilder.AppendLineFormat("\t\t\t\tm_Dic{0}.Add(data.{1}, data);", table.tableName, colNames[0]);
+                        strBuilder.AppendLine("\t\t\t}");
+                        strBuilder.AppendLine("\t\t}");
+                        strBuilder.AppendLineFormat("\t\tpublic void ExportBinary_{0}(System.IO.BinaryWriter binaryWriter)", table.tableName);
+                        strBuilder.AppendLine("\t\t{");
+                        strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write(m_Dic{0}.Count);", table.tableName);
+                        strBuilder.AppendLineFormat("\t\t\tforeach (var data in m_Dic{0}.Values)", table.tableName);
+                        strBuilder.AppendLine("\t\t\t{");
+                        strBuilder.AppendLine("\t\t\t\tdata.ExportBinary(binaryWriter);");
+                        strBuilder.AppendLine("\t\t\t}");
+                        strBuilder.AppendLine("\t\t}");
+                        strBuilder.AppendLineFormat("\t\tpublic {0} Get{0}By{1}({2} {3})", table.tableName, colNames[0], colTypes[0], colNames[0].ToLower());
+                        strBuilder.AppendLine("\t\t{");
+                        strBuilder.AppendLineFormat("\t\t\tif (m_Dic{0}.ContainsKey({1}) == false) return default;", table.tableName, colNames[0].ToLower());
+                        strBuilder.AppendLineFormat("\t\t\treturn m_Dic{0}[{1}];", table.tableName, colNames[0].ToLower());
+                        strBuilder.AppendLine("\t\t}");
+                        strBuilder.AppendLineFormat("\t\tpublic int Get{0}DataCount()", table.tableName);
+                        strBuilder.AppendLine("\t\t{");
+                        strBuilder.AppendLineFormat("\t\t\treturn m_Dic{0}.Count;", table.tableName);
+                        strBuilder.AppendLine("\t\t}");
+                        strBuilder.AppendLineFormat("\t\tpublic IEnumerable<{0}> GetAll{0}Data()", table.tableName);
+                        strBuilder.AppendLine("\t\t{");
+                        strBuilder.AppendLineFormat("\t\t\treturn m_Dic{0}.Values.ToArray();", table.tableName);
+                        strBuilder.AppendLine("\t\t}");
+                        strBuilder.AppendLine("\t}");
+                        strBuilder.AppendLine("}");
                         System.IO.File.WriteAllText(System.IO.Path.Combine(m_ExportCodeTempPath, $"TableManager_{table.tableName}.cs"), strBuilder.ToString());
                     }
                     catch (Exception e)
                     {
                         lock (m_GeneratedTableCodeList)
                         {
-                            m_GeneratedTableCodeList.Add(table);
+                            if (m_GeneratedTableCodeList.Contains(table))
+                                Debug.LogError("????");
+                            else
+                                m_GeneratedTableCodeList.Add(table);
                         }
                         Debug.LogError($"Table Generate Error - {table.tableName} TableManager 코드 저장 실패\n{e}");
                         return;
                     }
-                    
+
                     lock (m_GeneratedTableCodeList)
                     {
-                        m_GeneratedTableCodeList.Add(table);
+                        if (m_GeneratedTableCodeList.Contains(table))
+                            Debug.LogError("????");
+                        else
+                            m_GeneratedTableCodeList.Add(table);
                     }
                 });
         }
