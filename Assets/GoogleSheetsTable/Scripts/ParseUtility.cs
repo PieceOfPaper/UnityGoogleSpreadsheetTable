@@ -34,11 +34,29 @@ namespace GoogleSheetsTable
                     m_CachedEnumValues[type].Add(names[i], values.GetValue(i));
                 }
             }
-            
-            if (m_CachedEnumValues[type].ContainsKey(str) == false)
+
+            if (str.Contains(','))
             {
-                output = null;
-                return false;
+                var split = str.Split(',');
+                var result = Enum.ToObject(type, 0);
+                for (var i = 0; i < split.Length; i ++)
+                {
+                    var enumName = split[i].Trim();
+                    if (m_CachedEnumValues[type].ContainsKey(enumName) == false)
+                        continue;
+                    
+                    result = (int)result | (int)m_CachedEnumValues[type][enumName];
+                }
+                output = result;
+                return true;
+            }
+            else
+            {
+                if (m_CachedEnumValues[type].ContainsKey(str) == false)
+                {
+                    output = null;
+                    return false;
+                }
             }
 
             output = m_CachedEnumValues[type][str];
