@@ -45,6 +45,21 @@ namespace GoogleSheetsTable
             return true;
         }
         
+        public static bool TryParseArrayString(string str, out string[] output)
+        {
+            output = default;
+            if (string.IsNullOrWhiteSpace(str))
+                return false;
+            
+            var split = str.Split(',');
+            output = new string[split.Length];
+            for (int i = 0; i < split.Length; i ++)
+            {
+                output[i] = split[i].Trim();
+            }
+            return true;
+        }
+
         public static bool TryParseArrayByte(string str, out byte[] output)
         {
             output = default;

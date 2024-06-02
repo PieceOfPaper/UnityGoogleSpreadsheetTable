@@ -565,6 +565,10 @@ namespace GoogleSheetsTable
                                 var arrayTypeName = colTypes[colIdx].Substring(6);
                                 switch (arrayTypeName)
                                 {
+                                    case "string":
+                                    case "String":
+                                        strBuilder.AppendLineFormat("\t\t\tif (ParseUtility.TryParseArrayString(xmlReader.GetAttribute(\"{0}\"), out {0}) == false) {0} = Array.Empty<{1}>();", colNames[colIdx], arrayTypeName);
+                                        break;
                                     case "byte":
                                     case "Byte":
                                         strBuilder.AppendLineFormat("\t\t\tif (ParseUtility.TryParseArrayByte(xmlReader.GetAttribute(\"{0}\"), out {0}) == false) {0} = Array.Empty<{1}>();", colNames[colIdx], arrayTypeName);
@@ -724,6 +728,10 @@ namespace GoogleSheetsTable
                                 strBuilder.AppendLineFormat("\t\t\tfor (var i = 0; i < {0}.Length; i ++)", colNames[colIdx]);
                                 switch (arrayTypeName)
                                 {
+                                    case "string":
+                                    case "String":
+                                        strBuilder.AppendLineFormat("\t\t\t\t{0}[i] = binaryReader.ReadString();", colNames[colIdx]);
+                                        break;
                                     case "byte":
                                     case "Byte":
                                         strBuilder.AppendLineFormat("\t\t\t\t{0}[i] = binaryReader.ReadByte();", colNames[colIdx]);
