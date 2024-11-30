@@ -10,7 +10,6 @@ namespace GoogleSheetsTable
     {
         public string exportCodePath = "Assets/Scripts/TableGenerated";
         public string exportXmlPath = "Assets/Resources/Data";
-        public string googleClientSecretsPath;
         public Table[] tableSettings;
 
         [Serializable]
