@@ -25,6 +25,12 @@ namespace GoogleSheetsTable
 
         public static bool TryParseEnum(System.Type type, string str, out object output)
         {
+            if (string.IsNullOrWhiteSpace(str))
+            {
+                output = null;
+                return false;
+            }
+            
             if (m_CachedEnumValues.ContainsKey(type) == false)
             {
                 m_CachedEnumValues.Add(type, new Dictionary<string, object>());

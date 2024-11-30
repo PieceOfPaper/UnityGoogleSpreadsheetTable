@@ -527,8 +527,9 @@ namespace GoogleSheetsTable
                         strBuilder.AppendLine("using Unity.Collections;");
                         strBuilder.AppendLine("namespace GoogleSheetsTable");
                         strBuilder.AppendLine("{");
-                        strBuilder.AppendLineFormat("\tpublic partial struct {0}", table.tableName);
+                        strBuilder.AppendLineFormat("\tpublic partial struct {0} : IDisposable", table.tableName);
                         strBuilder.AppendLine("\t{");
+                        strBuilder.AppendLine("\t\tpublic readonly bool IsValid;");
 
                         var colCnt = System.Math.Min(colNames.Count, colTypes.Count);
                         for (var colIdx = 0; colIdx < colCnt; colIdx ++)
@@ -564,6 +565,7 @@ namespace GoogleSheetsTable
                         }
                         strBuilder.AppendLineFormat("\t\tpublic {0}(System.Xml.XmlReader xmlReader)", table.tableName);
                         strBuilder.AppendLine("\t\t{");
+                        strBuilder.AppendLine("\t\t\tIsValid = true;");
                         for (var colIdx = 0; colIdx < colCnt; colIdx ++)
                         {
                             if (string.IsNullOrWhiteSpace(colNames[colIdx])) continue;
@@ -738,6 +740,7 @@ namespace GoogleSheetsTable
                         strBuilder.AppendLine("\t\t}");
                         strBuilder.AppendLineFormat("\t\tpublic {0}(System.IO.BinaryReader binaryReader)", table.tableName);
                         strBuilder.AppendLine("\t\t{");
+                        strBuilder.AppendLine("\t\t\tIsValid = true;");
                         for (var colIdx = 0; colIdx < colCnt; colIdx ++)
                         {
                             if (string.IsNullOrWhiteSpace(colNames[colIdx])) continue;
@@ -987,6 +990,28 @@ namespace GoogleSheetsTable
                             }
                         }
                         strBuilder.AppendLine("\t\t}");
+                        strBuilder.AppendLine("\t\tpublic void Dispose()");
+                        strBuilder.AppendLine("\t\t{");
+                        for (var colIdx = 0; colIdx < colCnt; colIdx ++)
+                        {
+                            if (string.IsNullOrWhiteSpace(colNames[colIdx])) continue;
+                            if (string.IsNullOrWhiteSpace(colTypes[colIdx])) continue;
+
+                            if (colTypes[colIdx].StartsWith("enum:"))
+                            {
+                                //nothing..
+                            }
+                            else if (colTypes[colIdx].StartsWith("array:"))
+                            {
+                                if (table.useNative == true)
+                                    strBuilder.AppendLineFormat("\t\t\t{0}.Dispose();", colNames[colIdx]);
+                            }
+                            else
+                            {
+                                //nothing..
+                            }
+                        }
+                        strBuilder.AppendLine("\t\t}");
                         strBuilder.AppendLine("\t}");
                         strBuilder.AppendLine("}");
                         System.IO.File.WriteAllText(System.IO.Path.Combine(m_ExportCodeTempPath, $"{table.tableName}.cs"), strBuilder.ToString());
@@ -1017,23 +1042,30 @@ namespace GoogleSheetsTable
                             strBuilder.AppendLine("{");
                             strBuilder.AppendLine("\tpublic partial class TableManager");
                             strBuilder.AppendLine("\t{");
-                            strBuilder.AppendLineFormat("\t\tprivate readonly NativeHashMap<{1}, {0}> m_Dic{0} = new NativeHashMap<int, {0}>(0, Allocator.Persistent);", table.tableName, colTypes[0]);
+                            strBuilder.AppendLineFormat("\t\tprivate NativeHashMap<{1}, {0}> m_Dic{0} = default;", table.tableName, colTypes[0]);
                             strBuilder.AppendLineFormat("\t\tpublic NativeHashMap<{1}, {0}> {0}Datas => m_Dic{0};", table.tableName, colTypes[0]);
                             strBuilder.AppendLineFormat("\t\tpublic void LoadTable_{0}(System.Xml.XmlReader xmlReader)", table.tableName);
                             strBuilder.AppendLine("\t\t{");
-                            strBuilder.AppendLineFormat("\t\t\tm_Dic{0}.Clear();", table.tableName);
+                            strBuilder.AppendLineFormat("\t\t\tvar list = new List<{0}>();", table.tableName);
                             strBuilder.AppendLine("\t\t\twhile (xmlReader.Read())");
                             strBuilder.AppendLine("\t\t\t{");
                             strBuilder.AppendLine("\t\t\t\tif (xmlReader.NodeType != System.Xml.XmlNodeType.Element) continue;");
                             strBuilder.AppendLineFormat("\t\t\t\tif (xmlReader.Name != \"{0}\") continue;", table.tableName);
                             strBuilder.AppendLineFormat("\t\t\t\tvar data = new {0}(xmlReader);", table.tableName);
-                            strBuilder.AppendLineFormat("\t\t\t\tm_Dic{0}.Add(data.{1}, data);", table.tableName, colNames[0]);
+                            strBuilder.AppendLineFormat("\t\t\t\tlist.Add(data);", table.tableName);
+                            strBuilder.AppendLine("\t\t\t}");
+                            strBuilder.AppendLineFormat("\t\t\tif (m_Dic{0}.IsCreated) m_Dic{0}.Dispose();", table.tableName);
+                            strBuilder.AppendLineFormat("\t\t\tm_Dic{0} = new NativeHashMap<int, {0}>(list.Count, Allocator.Persistent);", table.tableName, colTypes[0]);
+                            strBuilder.AppendLine("\t\t\tfor (int i = 0; i < list.Count; i ++)");
+                            strBuilder.AppendLine("\t\t\t{");
+                            strBuilder.AppendLineFormat("\t\t\t\tm_Dic{0}.Add(list[i].{1}, list[i]);", table.tableName, colNames[0]);
                             strBuilder.AppendLine("\t\t\t}");
                             strBuilder.AppendLine("\t\t}");
                             strBuilder.AppendLineFormat("\t\tpublic void LoadTable_{0}(System.IO.BinaryReader binaryReader)", table.tableName);
                             strBuilder.AppendLine("\t\t{");
-                            strBuilder.AppendLineFormat("\t\t\tm_Dic{0}.Clear();", table.tableName);
                             strBuilder.AppendLine("\t\t\tvar count = binaryReader.ReadInt32();");
+                            strBuilder.AppendLineFormat("\t\t\tif (m_Dic{0}.IsCreated) m_Dic{0}.Dispose();", table.tableName);
+                            strBuilder.AppendLineFormat("\t\t\tm_Dic{0} = new NativeHashMap<int, {0}>(count, Allocator.Persistent);", table.tableName, colTypes[0]);
                             strBuilder.AppendLine("\t\t\tfor (var i = 0; i < count; i ++)");
                             strBuilder.AppendLine("\t\t\t{");
                             strBuilder.AppendLineFormat("\t\t\t\tvar data = new {0}(binaryReader);", table.tableName);
@@ -1050,22 +1082,37 @@ namespace GoogleSheetsTable
                             strBuilder.AppendLine("\t\t\t}");
                             strBuilder.AppendLine("\t\t\tvalues.Dispose();");
                             strBuilder.AppendLine("\t\t}");
+                            strBuilder.AppendLineFormat("\t\tpublic void Dispose_{0}()", table.tableName);
+                            strBuilder.AppendLine("\t\t{");
+                            strBuilder.AppendLineFormat("\t\t\tif (m_Dic{0}.IsCreated == false) return;", table.tableName);
+                            strBuilder.AppendLineFormat("\t\t\tvar values = m_Dic{0}.GetValueArray(Allocator.Temp);", table.tableName);
+                            strBuilder.AppendLine("\t\t\tforeach (var data in values)");
+                            strBuilder.AppendLine("\t\t\t{");
+                            strBuilder.AppendLine("\t\t\t\tdata.Dispose();");
+                            strBuilder.AppendLine("\t\t\t}");
+                            strBuilder.AppendLine("\t\t\tvalues.Dispose();");
+                            strBuilder.AppendLineFormat("\t\t\tm_Dic{0}.Dispose();", table.tableName);
+                            strBuilder.AppendLine("\t\t}");
                             strBuilder.AppendLineFormat("\t\tpublic {0} Get{0}By{1}({2} {3})", table.tableName, colNames[0], colTypes[0], colNames[0].ToLower());
                             strBuilder.AppendLine("\t\t{");
+                            strBuilder.AppendLineFormat("\t\t\tif (m_Dic{0}.IsCreated == false) return default;", table.tableName);
                             strBuilder.AppendLineFormat("\t\t\tif (m_Dic{0}.ContainsKey({1}) == false) return default;", table.tableName, colNames[0].ToLower());
                             strBuilder.AppendLineFormat("\t\t\treturn m_Dic{0}[{1}];", table.tableName, colNames[0].ToLower());
                             strBuilder.AppendLine("\t\t}");
                             strBuilder.AppendLineFormat("\t\tpublic int Get{0}DataCount()", table.tableName);
                             strBuilder.AppendLine("\t\t{");
-                            strBuilder.AppendLineFormat("\t\t\treturn m_Dic{0}.Count;", table.tableName);
+                            strBuilder.AppendLineFormat("\t\t\treturn m_Dic{0}.IsCreated ? m_Dic{0}.Count : 0;", table.tableName);
                             strBuilder.AppendLine("\t\t}");
                             strBuilder.AppendLineFormat("\t\tpublic IEnumerable<{0}> GetAll{0}Data()", table.tableName);
                             strBuilder.AppendLine("\t\t{");
                             strBuilder.AppendLineFormat("\t\t\tvar list = new List<{0}>();", table.tableName);
-                            strBuilder.AppendLineFormat("\t\t\tvar values = m_Dic{0}.GetValueArray(Allocator.Temp);", table.tableName);
-                            strBuilder.AppendLine("\t\t\tforeach (var data in values)");
+                            strBuilder.AppendLineFormat("\t\t\tif (m_Dic{0}.IsCreated);", table.tableName);
                             strBuilder.AppendLine("\t\t\t{");
-                            strBuilder.AppendLine("\t\t\t\tlist.Add(data);");
+                            strBuilder.AppendLineFormat("\t\t\t\tvar values = m_Dic{0}.GetValueArray(Allocator.Temp);", table.tableName);
+                            strBuilder.AppendLine("\t\t\t\tforeach (var data in values)");
+                            strBuilder.AppendLine("\t\t\t\t{");
+                            strBuilder.AppendLine("\t\t\t\t\tlist.Add(data);");
+                            strBuilder.AppendLine("\t\t\t\t}");
                             strBuilder.AppendLine("\t\t\t}");
                             strBuilder.AppendLine("\t\t\treturn list;");
                             strBuilder.AppendLine("\t\t}");
@@ -1110,6 +1157,14 @@ namespace GoogleSheetsTable
                             strBuilder.AppendLine("\t\t\t{");
                             strBuilder.AppendLine("\t\t\t\tdata.ExportBinary(binaryWriter);");
                             strBuilder.AppendLine("\t\t\t}");
+                            strBuilder.AppendLine("\t\t}");
+                            strBuilder.AppendLineFormat("\t\tpublic void Dispose_{0}()", table.tableName);
+                            strBuilder.AppendLine("\t\t{");
+                            strBuilder.AppendLineFormat("\t\t\tforeach (var data in m_Dic{0}.Values)", table.tableName);
+                            strBuilder.AppendLine("\t\t\t{");
+                            strBuilder.AppendLine("\t\t\t\tdata.Dispose();");
+                            strBuilder.AppendLine("\t\t\t}");
+                            strBuilder.AppendLineFormat("\t\t\tm_Dic{0}.Clear();", table.tableName);
                             strBuilder.AppendLine("\t\t}");
                             strBuilder.AppendLineFormat("\t\tpublic {0} Get{0}By{1}({2} {3})", table.tableName, colNames[0], colTypes[0], colNames[0].ToLower());
                             strBuilder.AppendLine("\t\t{");
