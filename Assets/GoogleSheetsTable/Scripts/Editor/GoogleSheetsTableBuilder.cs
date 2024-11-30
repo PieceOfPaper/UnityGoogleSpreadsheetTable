@@ -545,7 +545,10 @@ namespace GoogleSheetsTable
                             }
                             else if (colTypes[colIdx].StartsWith("array:"))
                             {
-                                colType = colTypes[colIdx].Substring(6) + "[]";
+                                if (table.useNative == true)
+                                    colType = $"NativeArray<{colTypes[colIdx].Substring(6)}>";
+                                else
+                                    colType = colTypes[colIdx].Substring(6) + "[]";
                             }
                             else
                             {
@@ -578,39 +581,64 @@ namespace GoogleSheetsTable
                                 {
                                     case "string":
                                     case "String":
-                                        strBuilder.AppendLineFormat("\t\t\tif (ParseUtility.TryParseArrayString(xmlReader.GetAttribute(\"{0}\"), out {0}) == false) {0} = Array.Empty<{1}>();", colNames[colIdx], arrayTypeName);
+                                        if (table.useNative == false)
+                                            strBuilder.AppendLineFormat("\t\t\tif (ParseUtility.TryParseArrayString(xmlReader.GetAttribute(\"{0}\"), out {0}) == false) {0} = Array.Empty<{1}>();", colNames[colIdx], arrayTypeName);
                                         break;
                                     case "byte":
                                     case "Byte":
-                                        strBuilder.AppendLineFormat("\t\t\tif (ParseUtility.TryParseArrayByte(xmlReader.GetAttribute(\"{0}\"), out {0}) == false) {0} = Array.Empty<{1}>();", colNames[colIdx], arrayTypeName);
+                                        if (table.useNative == true)
+                                            strBuilder.AppendLineFormat("\t\t\tif (ParseUtility.TryParseNativeArrayByte(xmlReader.GetAttribute(\"{0}\"), out {0}) == false) {0} = new NativeArray<{1}>(0, Allocator.Persistent);", colNames[colIdx], arrayTypeName);
+                                        else
+                                            strBuilder.AppendLineFormat("\t\t\tif (ParseUtility.TryParseArrayByte(xmlReader.GetAttribute(\"{0}\"), out {0}) == false) {0} = Array.Empty<{1}>();", colNames[colIdx], arrayTypeName);
                                         break;
                                     case "short":
                                     case "Int16":
-                                        strBuilder.AppendLineFormat("\t\t\tif (ParseUtility.TryParseArrayByte(xmlReader.GetAttribute(\"{0}\"), out {0}) == false) {0} = Array.Empty<{1}>();", colNames[colIdx], arrayTypeName);
+                                        if (table.useNative == true)
+                                            strBuilder.AppendLineFormat("\t\t\tif (ParseUtility.TryParseNativeArrayShort(xmlReader.GetAttribute(\"{0}\"), out {0}) == false) {0} = new NativeArray<{1}>(0, Allocator.Persistent);", colNames[colIdx], arrayTypeName);
+                                        else
+                                            strBuilder.AppendLineFormat("\t\t\tif (ParseUtility.TryParseArrayShort(xmlReader.GetAttribute(\"{0}\"), out {0}) == false) {0} = Array.Empty<{1}>();", colNames[colIdx], arrayTypeName);
                                         break;
                                     case "int":
                                     case "Int32":
-                                        strBuilder.AppendLineFormat("\t\t\tif (ParseUtility.TryParseArrayInt(xmlReader.GetAttribute(\"{0}\"), out {0}) == false) {0} = Array.Empty<{1}>();", colNames[colIdx], arrayTypeName);
+                                        if (table.useNative == true)
+                                            strBuilder.AppendLineFormat("\t\t\tif (ParseUtility.TryParseNativeArrayInt(xmlReader.GetAttribute(\"{0}\"), out {0}) == false) {0} = new NativeArray<{1}>(0, Allocator.Persistent);", colNames[colIdx], arrayTypeName);
+                                        else
+                                            strBuilder.AppendLineFormat("\t\t\tif (ParseUtility.TryParseArrayInt(xmlReader.GetAttribute(\"{0}\"), out {0}) == false) {0} = Array.Empty<{1}>();", colNames[colIdx], arrayTypeName);
                                         break;
                                     case "long":
                                     case "Int64":
-                                        strBuilder.AppendLineFormat("\t\t\tif (ParseUtility.TryParseArrayLong(xmlReader.GetAttribute(\"{0}\"), out {0}) == false) {0} = Array.Empty<{1}>();", colNames[colIdx], arrayTypeName);
+                                        if (table.useNative == true)
+                                            strBuilder.AppendLineFormat("\t\t\tif (ParseUtility.TryParseNativeArrayLong(xmlReader.GetAttribute(\"{0}\"), out {0}) == false) {0} = new NativeArray<{1}>(0, Allocator.Persistent);", colNames[colIdx], arrayTypeName);
+                                        else
+                                            strBuilder.AppendLineFormat("\t\t\tif (ParseUtility.TryParseArrayLong(xmlReader.GetAttribute(\"{0}\"), out {0}) == false) {0} = Array.Empty<{1}>();", colNames[colIdx], arrayTypeName);
                                         break;
                                     case "decimal":
                                     case "Decimal":
-                                        strBuilder.AppendLineFormat("\t\t\tif (ParseUtility.TryParseArrayDecimal(xmlReader.GetAttribute(\"{0}\"), out {0}) == false) {0} = Array.Empty<{1}>();", colNames[colIdx], arrayTypeName);
+                                        if (table.useNative == true)
+                                            strBuilder.AppendLineFormat("\t\t\tif (ParseUtility.TryParseNativeArrayDecimal(xmlReader.GetAttribute(\"{0}\"), out {0}) == false) {0} = new NativeArray<{1}>(0, Allocator.Persistent);", colNames[colIdx], arrayTypeName);
+                                        else
+                                            strBuilder.AppendLineFormat("\t\t\tif (ParseUtility.TryParseArrayDecimal(xmlReader.GetAttribute(\"{0}\"), out {0}) == false) {0} = Array.Empty<{1}>();", colNames[colIdx], arrayTypeName);
                                         break;
                                     case "float":
                                     case "Single":
-                                        strBuilder.AppendLineFormat("\t\t\tif (ParseUtility.TryParseArrayFloat(xmlReader.GetAttribute(\"{0}\"), out {0}) == false) {0} = Array.Empty<{1}>();", colNames[colIdx], arrayTypeName);
+                                        if (table.useNative == true)
+                                            strBuilder.AppendLineFormat("\t\t\tif (ParseUtility.TryParseNativeArrayFloat(xmlReader.GetAttribute(\"{0}\"), out {0}) == false) {0} = new NativeArray<{1}>(0, Allocator.Persistent);", colNames[colIdx], arrayTypeName);
+                                        else
+                                            strBuilder.AppendLineFormat("\t\t\tif (ParseUtility.TryParseArrayFloat(xmlReader.GetAttribute(\"{0}\"), out {0}) == false) {0} = Array.Empty<{1}>();", colNames[colIdx], arrayTypeName);
                                         break;
                                     case "double":
                                     case "Double":
-                                        strBuilder.AppendLineFormat("\t\t\tif (ParseUtility.TryParseArrayDouble(xmlReader.GetAttribute(\"{0}\"), out {0}) == false) {0} = Array.Empty<{1}>();", colNames[colIdx], arrayTypeName);
+                                        if (table.useNative == true)
+                                            strBuilder.AppendLineFormat("\t\t\tif (ParseUtility.TryParseNativeArrayDouble(xmlReader.GetAttribute(\"{0}\"), out {0}) == false) {0} = new NativeArray<{1}>(0, Allocator.Persistent);", colNames[colIdx], arrayTypeName);
+                                        else
+                                            strBuilder.AppendLineFormat("\t\t\tif (ParseUtility.TryParseArrayDouble(xmlReader.GetAttribute(\"{0}\"), out {0}) == false) {0} = Array.Empty<{1}>();", colNames[colIdx], arrayTypeName);
                                         break;
                                     case "bool":
                                     case "Boolean":
-                                        strBuilder.AppendLineFormat("\t\t\tif (ParseUtility.TryParseArrayBool(xmlReader.GetAttribute(\"{0}\"), out {0}) == false) {0} = Array.Empty<{1}>();", colNames[colIdx], arrayTypeName);
+                                        if (table.useNative == true)
+                                            strBuilder.AppendLineFormat("\t\t\tif (ParseUtility.TryParseNativeArrayBool(xmlReader.GetAttribute(\"{0}\"), out {0}) == false) {0} = new NativeArray<{1}>(0, Allocator.Persistent);", colNames[colIdx], arrayTypeName);
+                                        else
+                                            strBuilder.AppendLineFormat("\t\t\tif (ParseUtility.TryParseArrayBool(xmlReader.GetAttribute(\"{0}\"), out {0}) == false) {0} = Array.Empty<{1}>();", colNames[colIdx], arrayTypeName);
                                         break;
                                 }
                             }
@@ -630,7 +658,8 @@ namespace GoogleSheetsTable
                                         break;
                                     case "string":
                                     case "String":
-                                        strBuilder.AppendLineFormat("\t\t\t{0} = xmlReader.GetAttribute(\"{0}\");", colNames[colIdx]);
+                                        if (table.useNative == false)
+                                            strBuilder.AppendLineFormat("\t\t\t{0} = xmlReader.GetAttribute(\"{0}\");", colNames[colIdx]);
                                         break;
                                     case "byte":
                                     case "Byte":
@@ -735,7 +764,10 @@ namespace GoogleSheetsTable
                             else if (colTypes[colIdx].StartsWith("array:"))
                             {
                                 var arrayTypeName = colTypes[colIdx].Substring(6);
-                                strBuilder.AppendLineFormat("\t\t\t{0} = new {1}[binaryReader.ReadInt32()];", colNames[colIdx], arrayTypeName);
+                                if (table.useNative == true)
+                                    strBuilder.AppendLineFormat("\t\t\t{0} = new NativeArray<{1}>(binaryReader.ReadInt32(), Allocator.Persistent);", colNames[colIdx], arrayTypeName);
+                                else
+                                    strBuilder.AppendLineFormat("\t\t\t{0} = new {1}[binaryReader.ReadInt32()];", colNames[colIdx], arrayTypeName);
                                 strBuilder.AppendLineFormat("\t\t\tfor (var i = 0; i < {0}.Length; i ++)", colNames[colIdx]);
                                 switch (arrayTypeName)
                                 {
@@ -1010,7 +1042,7 @@ namespace GoogleSheetsTable
                             strBuilder.AppendLine("\t\t}");
                             strBuilder.AppendLineFormat("\t\tpublic void ExportBinary_{0}(System.IO.BinaryWriter binaryWriter)", table.tableName);
                             strBuilder.AppendLine("\t\t{");
-                            strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write(m_Dic{0}.Count());", table.tableName);
+                            strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write(m_Dic{0}.Count);", table.tableName);
                             strBuilder.AppendLineFormat("\t\t\tvar values = m_Dic{0}.GetValueArray(Allocator.Temp);", table.tableName);
                             strBuilder.AppendLine("\t\t\tforeach (var data in values)");
                             strBuilder.AppendLine("\t\t\t{");
@@ -1025,7 +1057,7 @@ namespace GoogleSheetsTable
                             strBuilder.AppendLine("\t\t}");
                             strBuilder.AppendLineFormat("\t\tpublic int Get{0}DataCount()", table.tableName);
                             strBuilder.AppendLine("\t\t{");
-                            strBuilder.AppendLineFormat("\t\t\treturn m_Dic{0}.Count();", table.tableName);
+                            strBuilder.AppendLineFormat("\t\t\treturn m_Dic{0}.Count;", table.tableName);
                             strBuilder.AppendLine("\t\t}");
                             strBuilder.AppendLineFormat("\t\tpublic IEnumerable<{0}> GetAll{0}Data()", table.tableName);
                             strBuilder.AppendLine("\t\t{");

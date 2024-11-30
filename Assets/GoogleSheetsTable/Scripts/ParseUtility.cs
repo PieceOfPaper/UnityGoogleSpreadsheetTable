@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Mathematics;
+using Unity.Collections;
 using UnityEngine;
 
 namespace GoogleSheetsTable
@@ -204,6 +205,134 @@ namespace GoogleSheetsTable
             return true;
         }
 
+        
+        public static bool TryParseNativeArrayByte(string str, out NativeArray<byte> output)
+        {
+            output = default;
+            if (string.IsNullOrWhiteSpace(str))
+                return false;
+            
+            var split = str.Split(',');
+            output = new NativeArray<byte>(split.Length, Allocator.Persistent);
+            byte temp = 0;
+            for (int i = 0; i < split.Length; i ++)
+            {
+                temp = 0;
+                byte.TryParse(split[i].Trim(), out temp);
+                output[i] = temp;
+            }
+            return true;
+        }
+        
+        public static bool TryParseNativeArrayShort(string str, out NativeArray<short> output)
+        {
+            output = default;
+            if (string.IsNullOrWhiteSpace(str))
+                return false;
+            
+            var split = str.Split(',');
+            output = new NativeArray<short>(split.Length, Allocator.Persistent);
+            short temp = 0;
+            for (int i = 0; i < split.Length; i ++)
+            {
+                temp = 0;
+                short.TryParse(split[i].Trim(), out temp);
+                output[i] = temp;
+            }
+            return true;
+        }
+
+        public static bool TryParseNativeArrayInt(string str, out NativeArray<int> output)
+        {
+            output = default;
+            if (string.IsNullOrWhiteSpace(str))
+                return false;
+            
+            var split = str.Split(',');
+            output = new NativeArray<int>(split.Length, Allocator.Persistent);
+            int temp = 0;
+            for (int i = 0; i < split.Length; i ++)
+            {
+                temp = 0;
+                int.TryParse(split[i].Trim(), out temp);
+                output[i] = temp;
+            }
+            return true;
+        }
+
+        public static bool TryParseNativeArrayLong(string str, out NativeArray<long> output)
+        {
+            output = default;
+            if (string.IsNullOrWhiteSpace(str))
+                return false;
+            
+            var split = str.Split(',');
+            output = new NativeArray<long>(split.Length, Allocator.Persistent);
+            long temp = 0;
+            for (int i = 0; i < split.Length; i ++)
+            {
+                temp = 0;
+                long.TryParse(split[i].Trim(), out temp);
+                output[i] = temp;
+            }
+            return true;
+        }
+        
+        public static bool TryParseNativeArrayDecimal(string str, out NativeArray<decimal> output)
+        {
+            output = default;
+            if (string.IsNullOrWhiteSpace(str))
+                return false;
+            
+            var split = str.Split(',');
+            output = new NativeArray<decimal>(split.Length, Allocator.Persistent);
+            decimal temp = 0;
+            for (int i = 0; i < split.Length; i ++)
+            {
+                temp = 0;
+                decimal.TryParse(split[i].Trim(), out temp);
+                output[i] = temp;
+            }
+            return true;
+        }
+        
+        public static bool TryParseNativeArrayFloat(string str, out NativeArray<float> output)
+        {
+            output = default;
+            if (string.IsNullOrWhiteSpace(str))
+                return false;
+            
+            var split = str.Split(',');
+            output = new NativeArray<float>(split.Length, Allocator.Persistent);
+            float temp = 0;
+            for (int i = 0; i < split.Length; i ++)
+            {
+                temp = 0;
+                float.TryParse(split[i].Trim(), out temp);
+                output[i] = temp;
+            }
+            return true;
+        }
+        
+        public static bool TryParseNativeArrayDouble(string str, out NativeArray<double> output)
+        {
+            output = default;
+            if (string.IsNullOrWhiteSpace(str))
+                return false;
+            
+            var split = str.Split(',');
+            output = new NativeArray<double>(split.Length, Allocator.Persistent);
+            double temp = 0;
+            for (int i = 0; i < split.Length; i ++)
+            {
+                temp = 0;
+                double.TryParse(split[i].Trim(), out temp);
+                output[i] = temp;
+            }
+            return true;
+        }
+        
+        
         public static bool TryParseInt2(string str, out int2 output)
         {
             output = default;
