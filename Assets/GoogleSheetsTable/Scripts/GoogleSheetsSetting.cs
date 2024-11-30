@@ -19,6 +19,7 @@ namespace GoogleSheetsTable
             public string spreadsheetId;
             public string sheetName;
             public string dataRange;
+            public bool useNative;
             
             public bool Equals(Table o)
             {
@@ -26,6 +27,7 @@ namespace GoogleSheetsTable
                 if (this.spreadsheetId != o.spreadsheetId) return false;
                 if (this.sheetName != o.sheetName) return false;
                 if (this.dataRange != o.dataRange) return false;
+                if (this.useNative != o.useNative) return false;
                 return true;
             }
         }
