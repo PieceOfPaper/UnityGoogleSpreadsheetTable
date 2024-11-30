@@ -19,6 +19,14 @@ namespace GoogleSheetsTable
         private const string GENERATE_XML_TEMP_PATH = "Temp/GoogleSheetsTable/Xml";
 
         public GoogleSheetsSetting m_Setting;
+
+        public string GoogleClientSecretsPath
+        {
+            get => EditorPrefs.GetString("GoogleSheetsTable.GoogleSheetsTableBuilder.GoogleClientSecretsPath");
+            set => EditorPrefs.SetString("GoogleSheetsTable.GoogleSheetsTableBuilder.GoogleClientSecretsPath", value);
+        }
+
+
         public Vector2 m_TablesScroll;
         
         private bool m_IsEnableGoogleSheetAPI;
@@ -83,7 +91,7 @@ namespace GoogleSheetsTable
             }
 
             if (GoogleSheetsAPI.Instance.IsCertificating == false && GoogleSheetsAPI.Instance.IsCertificated == false &&
-                string.IsNullOrWhiteSpace(m_Setting.googleClientSecretsPath) == false &&
+                string.IsNullOrWhiteSpace(GoogleClientSecretsPath) == false &&
                 m_GoogleSheetAPIRetryCount < 3)
             {
                 Certificate();
@@ -164,10 +172,10 @@ namespace GoogleSheetsTable
         {
             GUILayout.Label("Certificate", EditorStyles.boldLabel);
             
-            var googleClientSecretsPath = EditorGUILayout.DelayedTextField("Client Secrets", m_Setting.googleClientSecretsPath);
-            if (m_Setting.googleClientSecretsPath != googleClientSecretsPath)
+            var googleClientSecretsPath = EditorGUILayout.DelayedTextField("Client Secrets", GoogleClientSecretsPath);
+            if (GoogleClientSecretsPath != googleClientSecretsPath)
             {
-                m_Setting.googleClientSecretsPath = googleClientSecretsPath;
+                GoogleClientSecretsPath = googleClientSecretsPath;
                 m_IsSettingModified = true;
             }
             
@@ -344,14 +352,14 @@ namespace GoogleSheetsTable
             if (m_Setting == null)
                 return;
             
-            if (m_Setting.googleClientSecretsPath.StartsWith("Assets/"))
+            if (GoogleClientSecretsPath.StartsWith("Assets/"))
             {
-                var textAsset = AssetDatabase.LoadAssetAtPath<TextAsset>(m_Setting.googleClientSecretsPath);
+                var textAsset = AssetDatabase.LoadAssetAtPath<TextAsset>(GoogleClientSecretsPath);
                 GoogleSheetsAPI.Instance.Certificate(textAsset.text);   
             }
-            else
+            else if (System.IO.File.Exists(GoogleClientSecretsPath) == true)
             {
-                var text = System.IO.File.ReadAllText(m_Setting.googleClientSecretsPath);
+                var text = System.IO.File.ReadAllText(GoogleClientSecretsPath);
                 GoogleSheetsAPI.Instance.Certificate(text);   
             }
         }
