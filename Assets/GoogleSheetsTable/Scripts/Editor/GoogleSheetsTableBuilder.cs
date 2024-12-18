@@ -921,8 +921,16 @@ namespace GoogleSheetsTable
                             }
                             else if (colTypes[colIdx].StartsWith("array:"))
                             {
-                                strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write({0} == null ? 0 : {0}.Length);", colNames[colIdx]);
-                                strBuilder.AppendLineFormat("\t\t\tif ({0} != null) for (var i = 0; i < {0}.Length; i ++) binaryWriter.Write({0}[i]);", colNames[colIdx]);
+                                if (table.useNative == true)
+                                {
+                                    strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write(!{0}.IsCreated ? 0 : {0}.Length);", colNames[colIdx]);
+                                    strBuilder.AppendLineFormat("\t\t\tif ({0}.IsCreated) for (var i = 0; i < {0}.Length; i ++) binaryWriter.Write({0}[i]);", colNames[colIdx]);
+                                }
+                                else
+                                {
+                                    strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write({0} == null ? 0 : {0}.Length);", colNames[colIdx]);
+                                    strBuilder.AppendLineFormat("\t\t\tif ({0} != null) for (var i = 0; i < {0}.Length; i ++) binaryWriter.Write({0}[i]);", colNames[colIdx]);
+                                }
                             }
                             else
                             {
