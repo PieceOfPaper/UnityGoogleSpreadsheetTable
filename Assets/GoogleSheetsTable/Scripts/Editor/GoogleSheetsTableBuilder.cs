@@ -28,6 +28,8 @@ namespace GoogleSheetsTable
 
 
         public Vector2 m_TablesScroll;
+        public string m_TableSearch;
+        public string m_SelectedTableName;
         
         private bool m_IsEnableGoogleSheetAPI;
         private int m_GoogleSheetAPIRetryCount;
@@ -210,66 +212,73 @@ namespace GoogleSheetsTable
             var tableList = new List<GoogleSheetsSetting.Table>();
             if (m_Setting.tableSettings != null) tableList.AddRange(m_Setting.tableSettings);
 
+            EditorGUILayout.BeginHorizontal();
+            m_TableSearch = EditorGUILayout.TextField(m_TableSearch);
+            if (GUILayout.Button("Create", GUILayout.ExpandWidth(false)))
+            {
+                GUI.FocusControl(null);
+                var tableData = new GoogleSheetsSetting.Table();
+                tableData.tableName = m_TableSearch;
+                tableList.Add(tableData);
+                m_IsSettingModified = true;
+            }
+            EditorGUILayout.EndHorizontal();
+
+            var tableSearchKeywords = m_TableSearch.Split(' ');
+            for (int i = 0; i < tableSearchKeywords.Length; i ++)
+                tableSearchKeywords[i] = tableSearchKeywords[i].ToLower().Trim();
+            
             int removeIndex = -1;
             m_TablesScroll = EditorGUILayout.BeginScrollView(m_TablesScroll);
             for (int i = 0; i < tableList.Count; i ++)
             {
                 var data = tableList[i];
+                if (Array.Exists(tableSearchKeywords, _ => data.tableName.ToLower().Contains(_)) == false)
+                    continue;
                 
                 EditorGUILayout.BeginHorizontal();
-                EditorGUILayout.BeginVertical(GUILayout.Width(20f));
                 using (new EditorGUI.DisabledScope(i == 0))
                 {
-                    if (GUILayout.Button("▲"))
+                    if (GUILayout.Button("▲", GUILayout.ExpandWidth(false)))
                     {
                         GUI.FocusControl(null);
                         var temp = tableList[i - 1];
                         tableList[i - 1] = data;
                         tableList[i] = temp;
                         m_IsSettingModified = true;
-                        EditorGUILayout.EndVertical();
                         EditorGUILayout.EndHorizontal();
                         continue;
                     }
                 }
                 using (new EditorGUI.DisabledScope((i + 1) >= tableList.Count))
                 {
-                    if (GUILayout.Button("▼"))
+                    if (GUILayout.Button("▼", GUILayout.ExpandWidth(false)))
                     {
                         GUI.FocusControl(null);
                         var temp = tableList[i + 1];
                         tableList[i + 1] = data;
                         tableList[i] = temp;
                         m_IsSettingModified = true;
-                        EditorGUILayout.EndVertical();
                         EditorGUILayout.EndHorizontal();
                         continue;
                     }
                 }
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical(GUILayout.Width(100f));
-                GUILayout.Label("Table Name");
-                GUILayout.Label("Spreadsheet ID");
-                GUILayout.Label("Sheet Name");
-                GUILayout.Label("Data Name");
-                GUILayout.Label("Use Native");
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical(GUILayout.ExpandWidth(true));
-                data.tableName = EditorGUILayout.TextField(data.tableName, GUILayout.ExpandWidth(true));
-                data.spreadsheetId = EditorGUILayout.TextField(data.spreadsheetId, GUILayout.ExpandWidth(true));
-                data.sheetName = EditorGUILayout.TextField(data.sheetName, GUILayout.ExpandWidth(true));
-                data.dataRange = EditorGUILayout.TextField(data.dataRange, GUILayout.ExpandWidth(true));
-                data.useNative = EditorGUILayout.Toggle(data.useNative, GUILayout.ExpandWidth(true));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical(GUILayout.Width(100f));
-                if (GUILayout.Button("Open"))
+                if (GUILayout.Button(data.tableName))
+                {
+                    GUI.FocusControl(null);
+                    if (m_SelectedTableName == data.tableName)
+                        m_SelectedTableName = null;
+                    else
+                        m_SelectedTableName = data.tableName;
+                }
+                if (GUILayout.Button("Open", GUILayout.ExpandWidth(false)))
                 {
                     if (m_IsEnableGoogleSheetAPI == true)
                         GoogleSheetsAPI.Instance.OpenTable(data.spreadsheetId, data.sheetName);
                     else
                         Application.OpenURL($"https://docs.google.com/spreadsheets/d/{data.spreadsheetId}");
                 }
-                if (GUILayout.Button("Delete"))
+                if (GUILayout.Button("Delete", GUILayout.ExpandWidth(false)))
                 {
                     GUI.FocusControl(null);
                     var result = EditorUtility.DisplayDialog("Google Sheets Table Builer", $"Are you sure you want to delete this table?\n\nTable Name: {data.tableName}", "Delete", "Cancel");
@@ -278,27 +287,45 @@ namespace GoogleSheetsTable
                         removeIndex = i;
                     }
                 }
-                using (new EditorGUI.DisabledScope(m_IsEnableGoogleSheetAPI == false || m_RequestGenerateTableCodeList.Count > 0))
-                {
-                    if (GUILayout.Button("Generate Code"))
-                    {
-                        GUI.FocusControl(null);
-                        GenerateTable_Code(data);
-                    }
-                }
-                using (new EditorGUI.DisabledScope(m_IsEnableGoogleSheetAPI == false || m_RequestGenerateTableXmlList.Count > 0))
-                {
-                    if (GUILayout.Button("Generate Xml"))
-                    {
-                        GUI.FocusControl(null);
-                        GenerateTable_Xml(data);
-                    }
-                }
-                EditorGUILayout.EndVertical();
                 EditorGUILayout.EndHorizontal();
-
-                if ((i + 1) < tableList.Count)
+                
+                if (m_SelectedTableName == data.tableName)
+                {
+                    EditorGUILayout.BeginHorizontal();
+                    GUILayout.Space(20f);
+                    EditorGUILayout.BeginVertical(GUILayout.Width(100f));
+                    GUILayout.Label("Spreadsheet ID");
+                    GUILayout.Label("Sheet Name");
+                    GUILayout.Label("Data Name");
+                    GUILayout.Label("Use Native");
+                    EditorGUILayout.EndVertical();
+                    EditorGUILayout.BeginVertical(GUILayout.ExpandWidth(true));
+                    data.spreadsheetId = EditorGUILayout.TextField(data.spreadsheetId, GUILayout.ExpandWidth(true));
+                    data.sheetName = EditorGUILayout.TextField(data.sheetName, GUILayout.ExpandWidth(true));
+                    data.dataRange = EditorGUILayout.TextField(data.dataRange, GUILayout.ExpandWidth(true));
+                    data.useNative = EditorGUILayout.Toggle(data.useNative, GUILayout.ExpandWidth(true));
+                    EditorGUILayout.EndVertical();
+                    EditorGUILayout.BeginVertical(GUILayout.Width(100f));
+                    using (new EditorGUI.DisabledScope(m_IsEnableGoogleSheetAPI == false || m_RequestGenerateTableCodeList.Count > 0))
+                    {
+                        if (GUILayout.Button("Generate Code"))
+                        {
+                            GUI.FocusControl(null);
+                            GenerateTable_Code(data);
+                        }
+                    }
+                    using (new EditorGUI.DisabledScope(m_IsEnableGoogleSheetAPI == false || m_RequestGenerateTableXmlList.Count > 0))
+                    {
+                        if (GUILayout.Button("Generate Xml"))
+                        {
+                            GUI.FocusControl(null);
+                            GenerateTable_Xml(data);
+                        }
+                    }
+                    EditorGUILayout.EndVertical();
+                    EditorGUILayout.EndHorizontal();
                     EditorGUILayout.Space();
+                }
 
                 if (tableList[i].Equals(data) == false)
                 {
@@ -306,16 +333,10 @@ namespace GoogleSheetsTable
                     m_IsSettingModified = true;
                 }
             }
+
+            EditorGUILayout.EndScrollView();
             
-            EditorGUILayout.BeginHorizontal();
             GUILayout.FlexibleSpace();
-            if (GUILayout.Button("Add", GUILayout.ExpandWidth(false)))
-            {
-                GUI.FocusControl(null);
-                tableList.Add(new GoogleSheetsSetting.Table());
-                m_IsSettingModified = true;
-            }
-            EditorGUILayout.EndHorizontal();
 
             using (new EditorGUILayout.HorizontalScope())
             {
@@ -336,8 +357,6 @@ namespace GoogleSheetsTable
                     }
                 }
             }
-
-            EditorGUILayout.EndScrollView();
 
             if (removeIndex >= 0)
             {
