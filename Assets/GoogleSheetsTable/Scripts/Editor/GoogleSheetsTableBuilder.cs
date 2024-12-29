@@ -1103,9 +1103,10 @@ namespace GoogleSheetsTable
                         }
                         
                         strBuilder.Clear();
+                        strBuilder.AppendLine("using UnityEngine.Pool;");
+                        strBuilder.AppendLine("using Unity.Collections;");
                         strBuilder.AppendLine("using System.Collections;");
                         strBuilder.AppendLine("using System.Collections.Generic;");
-                        strBuilder.AppendLine("using Unity.Collections;");
                         strBuilder.AppendLine("namespace GoogleSheetsTable");
                         strBuilder.AppendLine("{");
                         strBuilder.AppendLine("\tpublic partial class TableManager");
@@ -1121,7 +1122,7 @@ namespace GoogleSheetsTable
                                         strBuilder.AppendLineFormat("\t\tpublic NativeHashMap<{1}, {0}> {0}Datas => m_Dic{0};", table.tableName, mainKeyFieldType);
                                         strBuilder.AppendLineFormat("\t\tpublic void LoadTable_{0}(System.Xml.XmlReader xmlReader)", table.tableName);
                                         strBuilder.AppendLine("\t\t{");
-                                        strBuilder.AppendLineFormat("\t\t\tvar list = new List<{0}>();", table.tableName);
+                                        strBuilder.AppendLineFormat("\t\t\tvar list = ListPool<{0}>.Get();", table.tableName);
                                         strBuilder.AppendLine("\t\t\twhile (xmlReader.Read())");
                                         strBuilder.AppendLine("\t\t\t{");
                                         strBuilder.AppendLine("\t\t\t\tif (xmlReader.NodeType != System.Xml.XmlNodeType.Element) continue;");
@@ -1135,6 +1136,7 @@ namespace GoogleSheetsTable
                                         strBuilder.AppendLine("\t\t\t{");
                                         strBuilder.AppendLineFormat("\t\t\t\tm_Dic{0}.Add(list[i].{1}, list[i]);", table.tableName, mainKeyFieldName);
                                         strBuilder.AppendLine("\t\t\t}");
+                                        strBuilder.AppendLineFormat("\t\t\tListPool<{0}>.Release(list);", table.tableName);
                                         strBuilder.AppendLine("\t\t}");
                                         strBuilder.AppendLineFormat("\t\tpublic void LoadTable_{0}(System.IO.BinaryReader binaryReader)", table.tableName);
                                         strBuilder.AppendLine("\t\t{");
@@ -1180,7 +1182,7 @@ namespace GoogleSheetsTable
                                         strBuilder.AppendLine("\t\t}");
                                         strBuilder.AppendLineFormat("\t\tpublic IEnumerable<{0}> GetAll{0}Data()", table.tableName);
                                         strBuilder.AppendLine("\t\t{");
-                                        strBuilder.AppendLineFormat("\t\t\tvar list = new List<{0}>();", table.tableName);
+                                        strBuilder.AppendLineFormat("\t\t\tvar list = ListPool<{0}>.Get();", table.tableName);
                                         strBuilder.AppendLineFormat("\t\t\tif (m_Dic{0}.IsCreated)", table.tableName);
                                         strBuilder.AppendLine("\t\t\t{");
                                         strBuilder.AppendLineFormat("\t\t\t\tvar values = m_Dic{0}.GetValueArray(Allocator.Temp);", table.tableName);
@@ -1202,7 +1204,7 @@ namespace GoogleSheetsTable
                                                 strBuilder.AppendLineFormat("\t\tpublic NativeHashMap<{1}, NativeHashMap<{2}, {0}>> {0}Datas => m_Dic{0};", table.tableName, mainKeyFieldType, subKeyFieldType);
                                                 strBuilder.AppendLineFormat("\t\tpublic void LoadTable_{0}(System.Xml.XmlReader xmlReader)", table.tableName);
                                                 strBuilder.AppendLine("\t\t{");
-                                                strBuilder.AppendLineFormat("\t\t\tvar list = new List<{0}>();", table.tableName);
+                                                strBuilder.AppendLineFormat("\t\t\tvar list = ListPool<{0}>.Get();", table.tableName);
                                                 strBuilder.AppendLine("\t\t\twhile (xmlReader.Read())");
                                                 strBuilder.AppendLine("\t\t\t{");
                                                 strBuilder.AppendLine("\t\t\t\tif (xmlReader.NodeType != System.Xml.XmlNodeType.Element) continue;");
@@ -1217,6 +1219,7 @@ namespace GoogleSheetsTable
                                                 strBuilder.AppendLineFormat("\t\t\t\tif (m_Dic{0}.ContainsKey(list[i].{1}) == false) m_Dic{0}.Add(list[i].{1}, new NativeHashMap<{2}, {0}>(1, Allocator.Persistent));", table.tableName, mainKeyFieldName, subKeyFieldType);
                                                 strBuilder.AppendLineFormat("\t\t\t\tm_Dic{0}[list[i].{1}].Add(list[i].{2}, list[i]);", table.tableName, mainKeyFieldName, subKeyFieldName);
                                                 strBuilder.AppendLine("\t\t\t}");
+                                                strBuilder.AppendLineFormat("\t\t\tListPool<{0}>.Release(list);", table.tableName);
                                                 strBuilder.AppendLine("\t\t}");
                                                 strBuilder.AppendLineFormat("\t\tpublic void LoadTable_{0}(System.IO.BinaryReader binaryReader)", table.tableName);
                                                 strBuilder.AppendLine("\t\t{");
@@ -1287,7 +1290,7 @@ namespace GoogleSheetsTable
                                                 strBuilder.AppendLine("\t\t}");
                                                 strBuilder.AppendLineFormat("\t\tpublic IEnumerable<{0}> GetAll{0}Data()", table.tableName);
                                                 strBuilder.AppendLine("\t\t{");
-                                                strBuilder.AppendLineFormat("\t\t\tvar list = new List<{0}>();", table.tableName);
+                                                strBuilder.AppendLineFormat("\t\t\tvar list = ListPool<{0}>.Get();", table.tableName);
                                                 strBuilder.AppendLineFormat("\t\t\tif (m_Dic{0}.IsCreated);", table.tableName);
                                                 strBuilder.AppendLine("\t\t\t{");
                                                 strBuilder.AppendLineFormat("\t\t\t\tvar values = m_Dic{0}.GetValueArray(Allocator.Temp);", table.tableName);
@@ -1316,7 +1319,7 @@ namespace GoogleSheetsTable
                                                 strBuilder.AppendLine("\t\t\t\tif (xmlReader.NodeType != System.Xml.XmlNodeType.Element) continue;");
                                                 strBuilder.AppendLineFormat("\t\t\t\tif (xmlReader.Name != \"{0}\") continue;", table.tableName);
                                                 strBuilder.AppendLineFormat("\t\t\t\tvar data = new {0}(xmlReader);", table.tableName);
-                                                strBuilder.AppendLineFormat("\t\t\t\tif (dic.ContainsKey(data.{1}) == false) dic.Add(data.{1}, new List<{0}>());", table.tableName, mainKeyFieldName);
+                                                strBuilder.AppendLineFormat("\t\t\t\tif (dic.ContainsKey(data.{1}) == false) dic.Add(data.{1}, ListPool<{0}>.Get());", table.tableName, mainKeyFieldName);
                                                 strBuilder.AppendLineFormat("\t\t\t\tdic[data.{1}].Add(data);", table.tableName, mainKeyFieldName);
                                                 strBuilder.AppendLine("\t\t\t}");
                                                 strBuilder.AppendLineFormat("\t\t\tif (m_Dic{0}.IsCreated) m_Dic{0}.Dispose();", table.tableName);
@@ -1330,6 +1333,7 @@ namespace GoogleSheetsTable
                                                 strBuilder.AppendLine("\t\t\t\t{");
                                                 strBuilder.AppendLine("\t\t\t\t\tarray[i] = list[i];");
                                                 strBuilder.AppendLine("\t\t\t\t}");
+                                                strBuilder.AppendLineFormat("\t\t\t\tListPool<{0}>.Release(list);", table.tableName);
                                                 strBuilder.AppendLineFormat("\t\t\t\tm_Dic{0}.Add(keypair.Key, array);", table.tableName);
                                                 strBuilder.AppendLine("\t\t\t}");
                                                 strBuilder.AppendLine("\t\t}");
@@ -1340,7 +1344,7 @@ namespace GoogleSheetsTable
                                                 strBuilder.AppendLine("\t\t\tfor (var i = 0; i < count; i ++)");
                                                 strBuilder.AppendLine("\t\t\t{");
                                                 strBuilder.AppendLineFormat("\t\t\t\tvar data = new {0}(binaryReader);", table.tableName);
-                                                strBuilder.AppendLineFormat("\t\t\t\tif (dic.ContainsKey(data.{1}) == false) dic.Add(data.{1}, new List<{0}>());", table.tableName, mainKeyFieldName);
+                                                strBuilder.AppendLineFormat("\t\t\t\tif (dic.ContainsKey(data.{1}) == false) dic.Add(data.{1}, ListPool<{0}>.Get());", table.tableName, mainKeyFieldName);
                                                 strBuilder.AppendLineFormat("\t\t\t\tdic[data.{1}].Add(data);", table.tableName, mainKeyFieldName);
                                                 strBuilder.AppendLine("\t\t\t}");
                                                 strBuilder.AppendLineFormat("\t\t\tif (m_Dic{0}.IsCreated) m_Dic{0}.Dispose();", table.tableName);
@@ -1354,6 +1358,7 @@ namespace GoogleSheetsTable
                                                 strBuilder.AppendLine("\t\t\t\t{");
                                                 strBuilder.AppendLine("\t\t\t\t\tarray[i] = list[i];");
                                                 strBuilder.AppendLine("\t\t\t\t}");
+                                                strBuilder.AppendLineFormat("\t\t\t\tListPool<{0}>.Release(list);", table.tableName);
                                                 strBuilder.AppendLineFormat("\t\t\t\tm_Dic{0}.Add(keypair.Key, array);", table.tableName);
                                                 strBuilder.AppendLine("\t\t\t}");
                                                 strBuilder.AppendLine("\t\t}");
@@ -1417,7 +1422,7 @@ namespace GoogleSheetsTable
                                                 strBuilder.AppendLine("\t\t}");
                                                 strBuilder.AppendLineFormat("\t\tpublic IEnumerable<{0}> GetAll{0}Data()", table.tableName);
                                                 strBuilder.AppendLine("\t\t{");
-                                                strBuilder.AppendLineFormat("\t\t\tvar list = new List<{0}>();", table.tableName);
+                                                strBuilder.AppendLineFormat("\t\t\tvar list = ListPool<{0}>.Get();", table.tableName);
                                                 strBuilder.AppendLineFormat("\t\t\tif (m_Dic{0}.IsCreated)", table.tableName);
                                                 strBuilder.AppendLine("\t\t\t{");
                                                 strBuilder.AppendLineFormat("\t\t\t\tvar values = m_Dic{0}.GetValueArray(Allocator.Temp);", table.tableName);
@@ -1438,7 +1443,7 @@ namespace GoogleSheetsTable
                                         strBuilder.AppendLineFormat("\t\tpublic NativeArray<{0}> {0}Datas => m_Array{0};", table.tableName);
                                         strBuilder.AppendLineFormat("\t\tpublic void LoadTable_{0}(System.Xml.XmlReader xmlReader)", table.tableName);
                                         strBuilder.AppendLine("\t\t{");
-                                        strBuilder.AppendLineFormat("\t\t\tvar list = new List<{0}>();", table.tableName);
+                                        strBuilder.AppendLineFormat("\t\t\tvar list = ListPool<{0}>.Get();", table.tableName);
                                         strBuilder.AppendLine("\t\t\twhile (xmlReader.Read())");
                                         strBuilder.AppendLine("\t\t\t{");
                                         strBuilder.AppendLine("\t\t\t\tif (xmlReader.NodeType != System.Xml.XmlNodeType.Element) continue;");
@@ -1453,6 +1458,7 @@ namespace GoogleSheetsTable
                                         strBuilder.AppendLine("\t\t\t{");
                                         strBuilder.AppendLineFormat("\t\t\t\tm_Array{0}[i] = list[i];", table.tableName, mainKeyFieldName);
                                         strBuilder.AppendLine("\t\t\t}");
+                                        strBuilder.AppendLineFormat("\t\t\tListPool<{0}>.Release(list);", table.tableName);
                                         strBuilder.AppendLine("\t\t}");
                                         strBuilder.AppendLineFormat("\t\tpublic void LoadTable_{0}(System.IO.BinaryReader binaryReader)", table.tableName);
                                         strBuilder.AppendLine("\t\t{");
@@ -1629,7 +1635,7 @@ namespace GoogleSheetsTable
                                                 strBuilder.AppendLine("\t\t}");
                                                 strBuilder.AppendLineFormat("\t\tpublic IEnumerable<{0}> GetAll{0}Data()", table.tableName);
                                                 strBuilder.AppendLine("\t\t{");
-                                                strBuilder.AppendLineFormat("\t\t\tvar list = new List<{0}>();", table.tableName);
+                                                strBuilder.AppendLineFormat("\t\t\tvar list = ListPool<{0}>.Get();", table.tableName);
                                                 strBuilder.AppendLineFormat("\t\t\tforeach(var dic in m_Dic{0}.Values)", table.tableName);
                                                 strBuilder.AppendLine("\t\t\t{");
                                                 strBuilder.AppendLine("\t\t\t\tlist.AddRange(dic.Values);");
@@ -1648,7 +1654,7 @@ namespace GoogleSheetsTable
                                                 strBuilder.AppendLine("\t\t\t\tif (xmlReader.NodeType != System.Xml.XmlNodeType.Element) continue;");
                                                 strBuilder.AppendLineFormat("\t\t\t\tif (xmlReader.Name != \"{0}\") continue;", table.tableName);
                                                 strBuilder.AppendLineFormat("\t\t\t\tvar data = new {0}(xmlReader);", table.tableName);
-                                                strBuilder.AppendLineFormat("\t\t\t\tif (dic.ContainsKey(data.{1}) == false) dic.Add(data.{1}, new List<{0}>());", table.tableName, mainKeyFieldName);
+                                                strBuilder.AppendLineFormat("\t\t\t\tif (dic.ContainsKey(data.{1}) == false) dic.Add(data.{1}, ListPool<{0}>.Get());", table.tableName, mainKeyFieldName);
                                                 strBuilder.AppendLineFormat("\t\t\t\tdic[data.{1}].Add(data);", table.tableName, mainKeyFieldName);
                                                 strBuilder.AppendLine("\t\t\t}");
                                                 strBuilder.AppendLineFormat("\t\t\tm_Dic{0}.Clear();", table.tableName);
@@ -1661,6 +1667,7 @@ namespace GoogleSheetsTable
                                                 strBuilder.AppendLine("\t\t\t\t{");
                                                 strBuilder.AppendLine("\t\t\t\t\tarray[i] = list[i];");
                                                 strBuilder.AppendLine("\t\t\t\t}");
+                                                strBuilder.AppendLineFormat("\t\t\t\tListPool<{0}>.Release(list);", table.tableName);
                                                 strBuilder.AppendLineFormat("\t\t\t\tm_Dic{0}.Add(keypair.Key, array);", table.tableName);
                                                 strBuilder.AppendLine("\t\t\t}");
                                                 strBuilder.AppendLine("\t\t}");
@@ -1671,7 +1678,7 @@ namespace GoogleSheetsTable
                                                 strBuilder.AppendLine("\t\t\tfor (var i = 0; i < count; i ++)");
                                                 strBuilder.AppendLine("\t\t\t{");
                                                 strBuilder.AppendLineFormat("\t\t\t\tvar data = new {0}(binaryReader);", table.tableName);
-                                                strBuilder.AppendLineFormat("\t\t\t\tif (dic.ContainsKey(data.{1}) == false) dic.Add(data.{1}, new List<{0}>());", table.tableName, mainKeyFieldName);
+                                                strBuilder.AppendLineFormat("\t\t\t\tif (dic.ContainsKey(data.{1}) == false) dic.Add(data.{1}, ListPool<{0}>.Get());", table.tableName, mainKeyFieldName);
                                                 strBuilder.AppendLineFormat("\t\t\t\tdic[data.{1}].Add(data);", table.tableName, mainKeyFieldName);
                                                 strBuilder.AppendLine("\t\t\t}");
                                                 strBuilder.AppendLineFormat("\t\t\tm_Dic{0}.Clear();", table.tableName, mainKeyFieldType);
@@ -1684,6 +1691,7 @@ namespace GoogleSheetsTable
                                                 strBuilder.AppendLine("\t\t\t\t{");
                                                 strBuilder.AppendLine("\t\t\t\t\tarray[i] = list[i];");
                                                 strBuilder.AppendLine("\t\t\t\t}");
+                                                strBuilder.AppendLineFormat("\t\t\t\tListPool<{0}>.Release(list);", table.tableName);
                                                 strBuilder.AppendLineFormat("\t\t\t\tm_Dic{0}.Add(keypair.Key, array);", table.tableName);
                                                 strBuilder.AppendLine("\t\t\t}");
                                                 strBuilder.AppendLine("\t\t}");
@@ -1736,7 +1744,7 @@ namespace GoogleSheetsTable
                                                 strBuilder.AppendLine("\t\t}");
                                                 strBuilder.AppendLineFormat("\t\tpublic IEnumerable<{0}> GetAll{0}Data()", table.tableName);
                                                 strBuilder.AppendLine("\t\t{");
-                                                strBuilder.AppendLineFormat("\t\t\tvar list = new List<{0}>();", table.tableName);
+                                                strBuilder.AppendLineFormat("\t\t\tvar list = ListPool<{0}>.Get();", table.tableName);
                                                 strBuilder.AppendLineFormat("\t\t\tforeach (var array in m_Dic{0}.Values)", table.tableName);
                                                 strBuilder.AppendLine("\t\t\t{");
                                                 strBuilder.AppendLineFormat("\t\t\t\tlist.AddRange(array);", table.tableName);
@@ -1752,7 +1760,7 @@ namespace GoogleSheetsTable
                                         strBuilder.AppendLineFormat("\t\tpublic {0}[] {0}Datas => m_Array{0};", table.tableName);
                                         strBuilder.AppendLineFormat("\t\tpublic void LoadTable_{0}(System.Xml.XmlReader xmlReader)", table.tableName);
                                         strBuilder.AppendLine("\t\t{");
-                                        strBuilder.AppendLineFormat("\t\t\tvar list = new List<{0}>();", table.tableName);
+                                        strBuilder.AppendLineFormat("\t\t\tvar list = ListPool<{0}>.Get();", table.tableName);
                                         strBuilder.AppendLine("\t\t\twhile (xmlReader.Read())");
                                         strBuilder.AppendLine("\t\t\t{");
                                         strBuilder.AppendLine("\t\t\t\tif (xmlReader.NodeType != System.Xml.XmlNodeType.Element) continue;");
@@ -1766,6 +1774,7 @@ namespace GoogleSheetsTable
                                         strBuilder.AppendLine("\t\t\t{");
                                         strBuilder.AppendLineFormat("\t\t\t\tm_Array{0}[i] = list[i];", table.tableName, mainKeyFieldName);
                                         strBuilder.AppendLine("\t\t\t}");
+                                        strBuilder.AppendLineFormat("\t\t\tListPool<{0}>.Release(list);", table.tableName);
                                         strBuilder.AppendLine("\t\t}");
                                         strBuilder.AppendLineFormat("\t\tpublic void LoadTable_{0}(System.IO.BinaryReader binaryReader)", table.tableName);
                                         strBuilder.AppendLine("\t\t{");
