@@ -1503,7 +1503,7 @@ namespace GoogleSheetsTable
                                     if (string.IsNullOrWhiteSpace(subKeyFieldName))
                                     {
                                         strBuilder.AppendLineFormat("\t\tprivate readonly Dictionary<{1}, {0}> m_Dic{0} = new Dictionary<{1}, {0}>();", table.tableName, mainKeyFieldType);
-                                        strBuilder.AppendLineFormat("\t\tpublic Dictionary<{1}, {0}> {0}Datas => m_Dic{0};", table.tableName, mainKeyFieldType);
+                                        strBuilder.AppendLineFormat("\t\tpublic IReadOnlyDictionary<{1}, {0}> {0}Datas => m_Dic{0};", table.tableName, mainKeyFieldType);
                                         strBuilder.AppendLineFormat("\t\tpublic void LoadTable_{0}(System.Xml.XmlReader xmlReader)", table.tableName);
                                         strBuilder.AppendLine("\t\t{");
                                         strBuilder.AppendLineFormat("\t\t\tm_Dic{0}.Clear();", table.tableName);
@@ -1561,7 +1561,7 @@ namespace GoogleSheetsTable
                                         {
                                             case GoogleSheetsSetting.KeyField.Type.Key:
                                                 strBuilder.AppendLineFormat("\t\tprivate readonly Dictionary<{1}, Dictionary<{2}, {0}>> m_Dic{0} = new Dictionary<{1}, Dictionary<{2}, {0}>>();", table.tableName, mainKeyFieldType, subKeyFieldType);
-                                                strBuilder.AppendLineFormat("\t\tpublic Dictionary<{1}, Dictionary<{2}, {0}>> {0}Datas => m_Dic{0};", table.tableName, mainKeyFieldType, subKeyFieldType);
+                                                strBuilder.AppendLineFormat("\t\tpublic IReadOnlyDictionary<{1}, Dictionary<{2}, {0}>> {0}Datas => m_Dic{0};", table.tableName, mainKeyFieldType, subKeyFieldType);
                                                 strBuilder.AppendLineFormat("\t\tpublic void LoadTable_{0}(System.Xml.XmlReader xmlReader)", table.tableName);
                                                 strBuilder.AppendLine("\t\t{");
                                                 strBuilder.AppendLineFormat("\t\t\tm_Dic{0}.Clear();", table.tableName);
@@ -1639,7 +1639,7 @@ namespace GoogleSheetsTable
                                                 break;
                                             case GoogleSheetsSetting.KeyField.Type.Index:
                                                 strBuilder.AppendLineFormat("\t\tprivate Dictionary<{1}, {0}[]> m_Dic{0} = new Dictionary<{1}, {0}[]>();", table.tableName, mainKeyFieldType);
-                                                strBuilder.AppendLineFormat("\t\tpublic Dictionary<{1}, {0}[]> {0}Datas => m_Dic{0};", table.tableName, mainKeyFieldType);
+                                                strBuilder.AppendLineFormat("\t\tpublic IReadOnlyDictionary<{1}, {0}[]> {0}Datas => m_Dic{0};", table.tableName, mainKeyFieldType);
                                                 strBuilder.AppendLineFormat("\t\tpublic void LoadTable_{0}(System.Xml.XmlReader xmlReader)", table.tableName);
                                                 strBuilder.AppendLine("\t\t{");
                                                 strBuilder.AppendLineFormat("\t\t\tvar dic = new Dictionary<{1}, List<{0}>>();", table.tableName, mainKeyFieldType);
