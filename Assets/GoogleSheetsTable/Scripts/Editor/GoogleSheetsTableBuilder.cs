@@ -765,6 +765,12 @@ namespace GoogleSheetsTable
                                     case "ColorCode":
                                         strBuilder.AppendLineFormat("\t\t\tColorUtility.TryParseHtmlString(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
                                         break;
+                                    case "DateTime":
+                                        strBuilder.AppendLineFormat("\t\t\tDateTime.TryParse(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                        break;
+                                    case "TimeSpan":
+                                        strBuilder.AppendLineFormat("\t\t\tTimeSpan.TryParse(xmlReader.GetAttribute(\"{0}\"), out {0});", colNames[colIdx]);
+                                        break;
                                 }
                             }
                         }
@@ -903,9 +909,7 @@ namespace GoogleSheetsTable
                                         strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadInt32(), binaryReader.ReadInt32(), binaryReader.ReadInt32());", colNames[colIdx], colTypes[colIdx]);
                                         break;
                                     case "int4":
-                                        strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadInt32(), binaryReader.ReadInt32(), binaryReader.ReadInt32(), binaryReader.ReadInt32());",
-                                            colNames[colIdx],
-                                            colTypes[colIdx]);
+                                        strBuilder.AppendLineFormat("\t\t\t{0} = new {1}(binaryReader.ReadInt32(), binaryReader.ReadInt32(), binaryReader.ReadInt32(), binaryReader.ReadInt32());", colNames[colIdx], colTypes[colIdx]);
                                         break;
                                     case "Vector2":
                                     case "float2":
@@ -924,6 +928,12 @@ namespace GoogleSheetsTable
                                     case "Color":
                                     case "ColorCode":
                                         strBuilder.AppendLineFormat("\t\t\t{0} = new Color32(binaryReader.ReadByte(), binaryReader.ReadByte(), binaryReader.ReadByte(), binaryReader.ReadByte());", colNames[colIdx]);
+                                        break;
+                                    case "DateTime":
+                                        strBuilder.AppendLineFormat("\t\t\t{0} = new DateTime(binaryReader.ReadInt64());", colNames[colIdx]);
+                                        break;
+                                    case "TimeSpan":
+                                        strBuilder.AppendLineFormat("\t\t\t{0} = new TimeSpan(binaryReader.ReadInt64());", colNames[colIdx]);
                                         break;
                                     default:
                                         strBuilder.AppendLineFormat("\t\t\t{0} = default;", colNames[colIdx]);
@@ -1024,6 +1034,10 @@ namespace GoogleSheetsTable
                                         strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write((byte)({0}.g * byte.MaxValue));", colNames[colIdx]);
                                         strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write((byte)({0}.b * byte.MaxValue));", colNames[colIdx]);
                                         strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write((byte)({0}.a * byte.MaxValue));", colNames[colIdx]);
+                                        break;
+                                    case "DateTime":
+                                    case "TimeSpan":
+                                        strBuilder.AppendLineFormat("\t\t\tbinaryWriter.Write({0}.Ticks);", colNames[colIdx]);
                                         break;
                                 }
                             }
