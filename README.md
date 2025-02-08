@@ -19,6 +19,8 @@ https://console.cloud.google.com/apis/credentials
  - long (Int64)
  - float (Single)
  - double (Double)
+ - DateTime
+ - TimeSpan
 ### Unity
  - Vector2
  - Vector3
